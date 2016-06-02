@@ -1,6 +1,7 @@
 local addonName, addonTable = ...
 local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
 
+
 --------------
 -- Upvalues --
 --------------
@@ -92,6 +93,14 @@ local function addAuras(tbl, db)
           type = "range",
           min = -math.ceil(GetScreenHeight()),
           max = math.ceil(GetScreenHeight()),
+        },
+        deleteAura = {
+          order = 9,
+          name = "Delete Aura",
+          type = "execute",
+          func = function()
+            k = nil
+          end,
         }
       }
     }
@@ -138,7 +147,7 @@ local function options()
   addAuras(tbl.args.class.args, Addon.db.class.auras)
   
   return tbl
-endend
+end
 
 local defaultSettings = {}
 
