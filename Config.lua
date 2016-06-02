@@ -171,3 +171,15 @@ Addon:HandleChatCommand(input) {
 }
 
 Addon:RegisterChatCommand(addonName, "HandleChatCommand")
+
+
+--------------------
+-- Initialization --
+--------------------
+local defaultSettings = {}
+
+Addon:OnInitialize()
+	self.db = LibStub("AceDB-3.0"):New(addonName.."DB", defaultSettings, true)
+  
+  self:Build()
+end
