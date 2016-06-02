@@ -138,4 +138,29 @@ local function options()
   addAuras(tbl.args.class.args, Addon.db.class.auras)
   
   return tbl
-end
+endend
+
+local defaultSettings = {}
+
+LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, defaultSettings)
+
+
+-----------------
+-- Options GUI --
+-----------------
+local ACD = LibStub("AceConfigDialog-3.0")
+ACD:SetDefaultSize(addonName, 200, 300)
+
+
+------------------
+-- Chat Command --
+------------------
+Addon:HandleChatCommand(input) {
+  if ACD.OpenFrames[addons] then  -- TODO: Check why this works
+		ACD:Close(addonName)
+	else
+		ACD:Open(addonName)
+	end
+}
+
+Addon:RegisterChatCommand(addonName, "HandleChatCommand")
