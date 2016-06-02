@@ -149,9 +149,7 @@ local function options()
   return tbl
 end
 
-local defaultSettings = {}
-
-LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, defaultSettings)
+LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName)
 
 
 -----------------
