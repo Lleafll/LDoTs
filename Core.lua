@@ -1,5 +1,5 @@
 local addonName, addonTable = ...
-local Addon = LibStub("AceAddon-3.0"):Getddon(addonName)
+local Addon = LibStub("AceAddon-3.0"):GetAddon(addonName)
 
 
 --------------
@@ -7,6 +7,9 @@ local Addon = LibStub("AceAddon-3.0"):Getddon(addonName)
 --------------
 
 
-------------
--- 
-------------
+---------------
+-- Functions --
+---------------
+function Addon:Build()
+
+end

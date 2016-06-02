@@ -19,14 +19,20 @@ local function addAuras(tbl, db)
     name = "New Aura",
     type = "execute",
     func = function()
-      db[#db] = {
-        name = "New Aura",
-        ownOnly = true,
-        height = 32,
-        width = 32,
-        posX = 0,
-        posY = 0,
-      }
+      if db["New Aura"] then
+        print("LDoTs: New Aura already exists")
+      else
+        db["New Aura"] = {
+          spellID = "",
+          unitID = "",
+          ownOnly = true,
+          pandemic = true,
+          height = 32,
+          width = 32,
+          posX = 0,
+          posY = 0,
+        }
+      end
     end
   }
   
@@ -35,14 +41,30 @@ local function addAuras(tbl, db)
   for k, v in pairs(db) do
     tbl[k] = {
       order = order,
-      name = v.name,
-      type = group,
+      name = k,
+      type = "group",
+      get = function(info)
+        return db[info[#info-1]][info[#info]]
+      end,
+      set = function(info, value)
+        db[info[#info-1]][info[#info]] = value
+        Addon:Build()
+      end,
       args = {
         name = {
           order = 0,
           name = "Name",
           type = "input",
-          -- TODO: Add validation
+          validate = function(info, val)
+            return db[val] and ("LDoTs: "..val.." already exists") or true
+          end,
+          get = function(info)
+            return k
+          end,
+          set = function(info, val)
+            db[val] = v
+            db[k] = nil
+          end,
         },
         spellID = {
           order = 1,
@@ -99,7 +121,7 @@ local function addAuras(tbl, db)
           name = "Delete Aura",
           type = "execute",
           func = function()
-            k = nil
+            db[k] = nil
           end,
         }
       }
@@ -131,13 +153,6 @@ local function options()
         type = "group",
         name = "Class Auras",
         childGroups = "select",
-        get = function(info)
-          return Addon.db.class[info[#info-1]][info[#info]]
-        end,
-        set = function(info, value)
-          Addon.db.class[info[#info-1]][info[#info]] = value
-          Addon:Build()
-        end,
         args = {}
       }
     }
@@ -156,19 +171,19 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName
 -- Options GUI --
 -----------------
 local ACD = LibStub("AceConfigDialog-3.0")
-ACD:SetDefaultSize(addonName, 200, 300)
+ACD:SetDefaultSize(addonName, 500, 450)
 
 
 ------------------
 -- Chat Command --
 ------------------
-Addon:HandleChatCommand(input) {
+function Addon:HandleChatCommand(input)
   if ACD.OpenFrames[addons] then  -- TODO: Check why this works
 		ACD:Close(addonName)
 	else
 		ACD:Open(addonName)
 	end
-}
+end
 
 Addon:RegisterChatCommand(addonName, "HandleChatCommand")
 
@@ -176,9 +191,16 @@ Addon:RegisterChatCommand(addonName, "HandleChatCommand")
 --------------------
 -- Initialization --
 --------------------
-local defaultSettings = {}
+local defaultSettings = {
+  global = {
+    auras = {}
+  },
+  class = {
+    auras = {}
+  }
+}
 
-Addon:OnInitialize()
+function Addon:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New(addonName.."DB", defaultSettings, true)
   
   self:Build()
