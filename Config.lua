@@ -24,11 +24,12 @@ local function addAuras(tbl, db)
       else
         db["New Aura"] = {
           spellID = "",
-          unitID = "",
+          unitID = "target",
           ownOnly = true,
           pandemic = true,
-          height = 32,
-          width = 32,
+          height = 30,
+          width = 30,
+          anchor = "CENTER",
           posX = 0,
           posY = 0,
         }
@@ -68,7 +69,7 @@ local function addAuras(tbl, db)
         },
         spellID = {
           order = 1,
-          name = "Spell ID",
+          name = "Spell ID: "..(GetSpellInfo(v.spellID) or ""),
           type = "input",
           -- TODO: Add validation
         },
@@ -102,26 +103,46 @@ local function addAuras(tbl, db)
           min = 1,
           softMax = 100,
         },
-        posX = {
+        anchor = {
           order = 7,
+          name = "Anchor",
+          type = "select",
+          style = "dropdown",
+          values = {
+            ["CENTER"] = "CENTER",
+            ["BOTTOM"] = "BOTTOM",
+            ["TOP"] = "TOP",
+            ["LEFT"] = "LEFT",
+            ["RIGHT"] = "RIGHT",
+            ["BOTTOMLEFT"] = "BOTTOMLEFT",
+            ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
+            ["TOPLEFT"] = "TOPLEFT",
+            ["TOPRIGHT"] = "TOPRIGHT"
+          }
+        },
+        posX = {
+          order = 8,
           name = "X Position",
           type = "range",
           min = -math.ceil(GetScreenWidth()),
           max = math.ceil(GetScreenWidth()),
+          step = 0.01
         },
         posY = {
-          order = 8,
-          name = "X Position",
+          order = 9,
+          name = "Y Position",
           type = "range",
           min = -math.ceil(GetScreenHeight()),
           max = math.ceil(GetScreenHeight()),
+          step = 0.01
         },
         deleteAura = {
-          order = 9,
+          order = 10,
           name = "Delete Aura",
           type = "execute",
           func = function()
             db[k] = nil
+            Addon:Build()
           end,
         }
       }
@@ -136,30 +157,34 @@ local function options()
 		name = addonName,
 		childGroups = "tab",
 		args = {
+      unlock = {
+        order = 1,
+        type = "execute",
+        name = "Toggle Lock",
+        func = function(info)
+          Addon.unlocked = not Addon.unlocked
+          Addon:Build()
+        end,
+      },
+      class = {
+        order = 10,
+        type = "group",
+        name = "Class Auras",
+        childGroups = "tree",
+        args = {}
+      },
       global = {
+        order = 11,
         type = "group",
         name = "Global Auras",
         childGroups = "tree",
-        get = function(info)
-          return Addon.db.global[info[#info-1]][info[#info]]
-        end,
-        set = function(info, value)
-          Addon.db.global[info[#info-1]][info[#info]] = value
-          Addon:Build()
-        end,
         args = {}
       },
-      class = {
-        type = "tree",
-        name = "Class Auras",
-        childGroups = "select",
-        args = {}
-      }
     }
   }
   
-  addAuras(tbl.args.global.args, Addon.db.global.auras)
   addAuras(tbl.args.class.args, Addon.db.class.auras)
+  addAuras(tbl.args.global.args, Addon.db.global.auras)
   
   return tbl
 end
@@ -171,14 +196,14 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName
 -- Options GUI --
 -----------------
 local ACD = LibStub("AceConfigDialog-3.0")
-ACD:SetDefaultSize(addonName, 500, 450)
+ACD:SetDefaultSize(addonName, 400, 650)
 
 
 ------------------
 -- Chat Command --
 ------------------
 function Addon:HandleChatCommand(input)
-  if ACD.OpenFrames[addons] then  -- TODO: Check why this works
+  if ACD.OpenFrames[addonName] then  -- TODO: Check why this works
 		ACD:Close(addonName)
 	else
 		ACD:Open(addonName)

@@ -27,7 +27,7 @@ local auraFrameCache = {}
 local function onEnterHandler(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
   GameTooltip:AddLine("LDoTs", 0.51, 0.31, 0.67, 1, 1, 1)
-  GameTooltip:AddLine("dragFrameTooltip", 1, 1, 1, 1, 1, 1)
+  GameTooltip:AddLine(self.db.name, 1, 1, 1, 1, 1, 1)
   GameTooltip:Show()
 end
 
@@ -44,7 +44,7 @@ end
 local function onMouseUpHandler(self, button)
   self:StopMovingOrSizing()
   local _, _, anchor, posX, posY = self:GetPoint()
-  --self.db.anchor = anchor
+  self.db.anchor = anchor
   self.db.posX = posX
   self.db.posY = posY
   ACR:NotifyChange(addonName)
@@ -56,7 +56,7 @@ local function onMouseWheelHandler(self, delta)
   else
     self.db.posY = self.db.posY + delta
   end
-  self:SetPoint(self.db.anchor or "CENTER", self.db.posX, self.db.posY)  -- TODO: Check if it changes from CENTER
+  self:SetPoint(self.db.anchor, self.db.posX, self.db.posY)
   ACR:NotifyChange(addonName)
 end
 
@@ -92,6 +92,7 @@ local function createAuraFrame()
   
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetAllPoints()
+  frame.cooldown:SetDrawEdge(false)
   
   frame.Unlock = frameUnlock
   frame.Lock = frameLock
@@ -103,14 +104,14 @@ local function getAuraFrame()
   local frame
   
   local auraFrameCacheLength = #auraFrameCache
-  if #auraFrameCacheLength == 0 then
+  if auraFrameCacheLength == 0 then
     frame = createAuraFrame()
   else
-    frame = auraFrameCache[#auraFrameCacheLength]
-    auraFrameCache[#auraFrameCacheLength] = nil
+    frame = auraFrameCache[auraFrameCacheLength]
+    auraFrameCache[auraFrameCacheLength] = nil
   end
   
-  auraFrames[#auraFrames] = frame
+  auraFrames[#auraFrames+1] = frame
   
   return frame
 end
@@ -138,9 +139,11 @@ local function auraEventHandler(self, event, ...)
     self.expires = nil
   end
   
-  local _, _, _, _, _, duration, expires = UnitAura(self.unitID, self.spellID, "PLAYER")
+  local db = self.db
+  local _, _, _, _, _, duration, expires = UnitDebuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
+  
   if duration then
-    if duration != self.duration or expires != self.expires then
+    if duration ~= self.duration or expires ~= self.expires then
       self:Show()
       self.cooldown:SetCooldown(expires - duration, duration)
       self.duration = duration
@@ -151,24 +154,34 @@ local function auraEventHandler(self, event, ...)
   end
 end
 
-local function initializeFrame(frame)
-  local db = frame.db
+local function initializeFrame(frame, db)
+  frame.db = db
   
+  frame:Hide()
   frame:SetSize(db.width, db.height)
-  frame:SetPoint("CENTER", db.posX, db.posY)
+  frame:ClearAllPoints()
+  frame:SetPoint(db.anchor, db.posX, db.posY)
   
-  frame.texture:SetTexture(select(3, GetSpellInfo(db.spellID)))
+  local name, _, icon = GetSpellInfo(db.spellID)
+  frame.texture:SetTexture(icon or "Interface\\Icons\\inv-misc-questionmark")
+  frame.spellName = name
   
-  frame:SetScript("OnEvent", auraEventHandler)
-  frame:RegisterUnitEvent("UNIT_AURA", db.unitID)
-  -- TODO: Add events based on unitID
+  if Addon.unlocked then
+    frame:Unlock()
+    frame:SetScript("OnEvent", nil)
+  else
+    frame:Lock()
+    frame:RegisterUnitEvent("UNIT_AURA", db.unitID)
+    -- TODO: Add events based on unitID
+    frame:SetScript("OnEvent", auraEventHandler)
+    auraEventHandler(frame)
+  end
 end
 
 local function buildFrames(db)
   for k, v in pairs(db) do
     local frame = getAuraFrame()
-    frame.db = db
-    initializeFrame(frame)
+    initializeFrame(frame, v)
   end
 end
 
