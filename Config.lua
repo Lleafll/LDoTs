@@ -139,7 +139,7 @@ local function options()
       global = {
         type = "group",
         name = "Global Auras",
-        childGroups = "select",
+        childGroups = "tree",
         get = function(info)
           return Addon.db.global[info[#info-1]][info[#info]]
         end,
@@ -150,7 +150,7 @@ local function options()
         args = {}
       },
       class = {
-        type = "group",
+        type = "tree",
         name = "Class Auras",
         childGroups = "select",
         args = {}
