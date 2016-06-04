@@ -6,6 +6,7 @@ local Addon = LibStub("AceAddon-3.0"):GetAddon(addonName)
 -- Libraries --
 ---------------
 local ACR = LibStub("AceConfigRegistry-3.0")
+local LSM = LibStub('LibSharedMedia-3.0')
 
 
 --------------
