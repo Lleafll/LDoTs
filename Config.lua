@@ -255,5 +255,8 @@ local defaultSettings = {
 function Addon:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New(addonName.."DB", defaultSettings, true)
   
-  self:Build()
+  self:RegisterEvent("PLAYER_ENTERING_WORLD", function()  -- Delay so UIScale can be read
+    Addon:Build()
+    Addon:UnregisterEvent("PLAYER_ENTERING_WORLD")
+  end)
 end
