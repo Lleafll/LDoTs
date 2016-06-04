@@ -180,6 +180,7 @@ local function auraEventHandler(self, event, ...)
   end
   
   if duration then
+  
     if duration ~= self.duration or expires ~= self.expires then
       self:Show()
       self.cooldown:SetCooldown(expires - duration, duration)
@@ -189,7 +190,11 @@ local function auraEventHandler(self, event, ...)
     
     if db.pandemic then
       local timeStamp = GetTime()
-      local pandemic = duration * 0.3 + db.pandemicExtra / (1 + (db.pandemicHasted and (GetHaste() / 100) or 0))  -- TODO: cache pandemic duration
+      local pandemicExtra = db.pandemicExtra / (1 + (db.pandemicHasted and (GetHaste() / 100) or 0))
+      if db.pandemicHasted then
+        pandemicExtra = pandemicExtra < 1 and 1 or pandemicExtra
+      end
+      local pandemic = duration * 0.3 + pandemicExtra  -- TODO: cache pandemic duration
       if expires - timeStamp < pandemic then
         self.pandemicBorder:Show()
       else
@@ -197,6 +202,7 @@ local function auraEventHandler(self, event, ...)
         self.pandemicBorder:Hide()
       end
     end
+    
   else
     self:Hide()
   end
