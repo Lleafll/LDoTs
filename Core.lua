@@ -204,7 +204,7 @@ local function auraEventHandler(self, event, ...)
       self.stacks:SetText(count)
     end
     
-    if db.pandemic then
+    if db.pandemic and expires > 0 then
       local timeStamp = GetTime()
       local pandemicExtra = db.pandemicExtra
       if db.pandemicHasted then
@@ -266,8 +266,9 @@ local function initializeFrame(frame, db)
   frame:ClearAllPoints()
   frame:SetPoint(db.anchor, db.posX, db.posY)
   
-  local name, _, icon = GetSpellInfo(db.spellID)
-  frame.texture:SetTexture(icon or "Interface\\Icons\\inv-misc-questionmark")
+  local name, _, icon = GetSpellInfo(db.spell)
+  icon = (db.iconOverride and db.iconOverride ~= "") and "Interface\\Icons\\"..db.iconOverride or (icon and icon ~= "") and icon or "Interface\\Icons\\inv-misc-questionmark"
+  frame.texture:SetTexture(icon)
   
   if db.showStacks then
     frame.stacks:Show()

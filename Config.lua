@@ -30,14 +30,15 @@ local function addAuras(tbl, db)
           ownOnly = true,
           showStacks = false,
           pandemic = true,
-          pandemicExtra = 0,
+          pandemicExtra = "0",
           pandemicHasted = true,
+          hideSwirl = false,
+          iconOverride = "",
           height = 30,
           width = 30,
           anchor = "CENTER",
           posX = 0,
           posY = 0,
-          hideSwirl = true,
         }
       end
     end
@@ -127,8 +128,13 @@ local function addAuras(tbl, db)
           name = "Extra Pandemic Time is Hasted",
           type = "toggle",
         },
-        hideSwirl = {
+        iconOverride = {
           order = 4.3,
+          name = "Icon Override",
+          type = "input",
+        },
+        hideSwirl = {
+          order = 4.4,
           name = "Hide Cooldown Swirl",
           type = "toggle",
         },
