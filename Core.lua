@@ -184,11 +184,11 @@ local function auraEventHandler(self, event, ...)
     
     if db.pandemic then
       local timeStamp = GetTime()
-      local pandemic = duration * 0.3 + db.pandemicExtra * (1 + (db.pandemicHasted and (GetHaste() / 100) or 0))  -- TODO: cache pandemic duration
+      local pandemic = duration * 0.3 + db.pandemicExtra / (1 + (db.pandemicHasted and (GetHaste() / 100) or 0))  -- TODO: cache pandemic duration
       if expires - timeStamp < pandemic then
         self.pandemicBorder:Show()
       else
-        Addon:AddPandemicTimer(self, pandemic)
+        Addon:AddPandemicTimer(self, timeStamp + pandemic)
         self.pandemicBorder:Hide()
       end
     end
@@ -200,7 +200,7 @@ end
 do
   local pandemicTimers = {}
   
-  function Addon:AddPandemicTimer(frame, pandemic)
+  function Addon:AddPandemicTimer(frame, pandemic)    
     if not pandemicTimers[frame] or pandemicTimers[frame] > pandemic then
       pandemicTimers[frame] = pandemic
     end
@@ -221,7 +221,7 @@ do
       for k, v in pairs(pandemicTimers) do
         if v < timeStamp then
           auraEventHandler(k)
-          pandemicTimers[k] = 0
+          pandemicTimers[k] = nil
         end
       end
       totalElapsed = 0
