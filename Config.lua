@@ -95,6 +95,7 @@ local function addAuras(tbl, db)
           type = "range",
           min = 1,
           softMax = 100,
+          step = 1
         },
         width = {
           order = 6,
@@ -102,6 +103,7 @@ local function addAuras(tbl, db)
           type = "range",
           min = 1,
           softMax = 100,
+          step = 1
         },
         anchor = {
           order = 7,
@@ -126,7 +128,7 @@ local function addAuras(tbl, db)
           type = "range",
           min = -math.ceil(GetScreenWidth()),
           max = math.ceil(GetScreenWidth()),
-          step = 0.01
+          step = 0.1
         },
         posY = {
           order = 9,
@@ -134,7 +136,7 @@ local function addAuras(tbl, db)
           type = "range",
           min = -math.ceil(GetScreenHeight()),
           max = math.ceil(GetScreenHeight()),
-          step = 0.01
+          step = 0.1
         },
         deleteAura = {
           order = 10,
