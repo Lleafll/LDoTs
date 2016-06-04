@@ -172,7 +172,12 @@ local function auraEventHandler(self, event, ...)
   end
   
   local db = self.db
-  local _, _, _, count, _, duration, expires = UnitDebuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
+  local _, count, duration, expires
+  if db.auraType == "Buff" then
+    _, _, _, count, _, duration, expires = UnitBuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
+  else
+    _, _, _, count, _, duration, expires = UnitDebuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
+  end
   
   if duration then
     if duration ~= self.duration or expires ~= self.expires then

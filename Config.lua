@@ -25,6 +25,7 @@ local function addAuras(tbl, db)
         db["New Aura"] = {
           spellID = "",
           unitID = "target",
+          auraType = "Debuff",
           ownOnly = true,
           pandemicExtra = 0,
           pandemicHasted = true,
@@ -80,6 +81,16 @@ local function addAuras(tbl, db)
           name = "Unit ID",
           type = "input",
           -- TODO: Add validation
+        },
+        auraType = {
+          order = 2.1,
+          name = "Aura Type",
+          type = "select",
+          style = dropdown,
+          values = {
+            ["Buff"] = "Buff",
+            ["Debuff"] = "Debuff",
+          }
         },
         ownOnly = {
           order = 3,
