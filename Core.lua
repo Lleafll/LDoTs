@@ -70,7 +70,9 @@ local function frameUnlock(self)  -- TODO: Events should be supressed
   self:SetScript("OnMouseDown", onMouseDownHandler)
   self:SetScript("OnMouseUp", onMouseUpHandler)
   self:SetScript("OnMouseWheel", onMouseWheelHandler)
-  self.pandemicBorder:Hide()
+  self.pandemicBorder:Hide()  
+  self.nameString:SetText(self.db.name)
+  self.nameString:Show()
 end
 
 local function frameLock(self)
@@ -81,6 +83,7 @@ local function frameLock(self)
   self:SetScript("OnMouseDown", nil)
   self:SetScript("OnMouseUp", nil)
   self:SetScript("OnMouseWheel", nil)
+  self.nameString:Hide()
 end
 
 
@@ -118,13 +121,18 @@ local function createAuraFrame()
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetAllPoints()
   frame.cooldown:SetDrawEdge(false)
-  frame.cooldown:SetReverse(true)
+  --frame.cooldown:SetReverse(true)
   
   frame.pandemicBorder = CreateFrame("Frame", nil, frame)
   frame.pandemicBorder:SetAllPoints()
   frame.pandemicBorder:SetBackdrop(pandemicBackdrop)
   frame.pandemicBorder:SetBackdropBorderColor(0, 1, 0, 1)
   frame.pandemicBorder:Hide()
+  
+  frame.nameString = frame:CreateFontString()
+  frame.nameString:SetPoint("CENTER")
+  frame.nameString:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+  frame.nameString:SetWordWrap(true)
   
   frame.Unlock = frameUnlock
   frame.Lock = frameLock

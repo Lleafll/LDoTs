@@ -5,7 +5,7 @@ local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceCo
 --------------
 -- Upvalues --
 --------------
-pairs = pairs
+local pairs = pairs
 
 
 -------------
@@ -20,13 +20,15 @@ local function addAuras(tbl, db)
     type = "execute",
     func = function()
       if db["New Aura"] then
-        print("LDoTs: New Aura already exists")
+        print(addonName..": New Aura already exists")
       else
         db["New Aura"] = {
+          name = "New Aura",
           spellID = "",
           unitID = "target",
           auraType = "Debuff",
           ownOnly = true,
+          pandemic = true,
           pandemicExtra = 0,
           pandemicHasted = true,
           height = 30,
@@ -59,15 +61,17 @@ local function addAuras(tbl, db)
           order = 0,
           name = "Name",
           type = "input",
-          validate = function(info, val)
-            return db[val] and ("LDoTs: "..val.." already exists") or true
+          validate = function(info, value)
+            return db[value] and (addonName..": "..value.." already exists") or true
           end,
           get = function(info)
             return k
           end,
-          set = function(info, val)
-            db[val] = v
+          set = function(info, value)
+            db[info[#info-1]][info[#info]] = value
+            db[value] = v
             db[k] = nil
+            Addon:Build()
           end,
         },
         spellID = {
