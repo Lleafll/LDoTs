@@ -27,7 +27,7 @@ local auraFrameCache = {}
 -------------------------
 local function onEnterHandler(self)
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
-  GameTooltip:AddLine("LDoTs", 0.51, 0.31, 0.67, 1, 1, 1)
+  GameTooltip:AddLine(addonName, 0.51, 0.31, 0.67, 1, 1, 1)
   GameTooltip:AddLine(self.db.name, 1, 1, 1, 1, 1, 1)
   GameTooltip:Show()
 end
@@ -85,11 +85,28 @@ end
 -------------------------------
 -- Frame Factory and Caching --
 -------------------------------
+local backdrop = {
+  bgFile = nil,
+  edgeFile = LSM:Fetch('background', "Solid"),
+  tile = false,
+  edgeSize = 1,
+  padding = -1
+}
+
 local function createAuraFrame()
   local frame = CreateFrame("Frame")
   
   frame.texture = frame:CreateTexture(nil, "BACKGROUND")
   frame.texture:SetAllPoints()
+  frame.texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+  
+  frame.backdrop = CreateFrame("Frame", nil, frame)
+  frame.backdrop:SetOutside()
+  frame.backdrop:SetBackdrop(backdrop)
+  frame.backdrop:SetBackdropBorderColor(0, 0, 0, 1)
+  --frame.backdrop:SetBackdropColor(1, 1, 1, .8)
+  local frameLevel = frame:GetFrameLevel()
+  frame.backdrop:SetFrameLevel(frameLevel > 0 and (frameLevel - 1) or 0)
   
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetAllPoints()
@@ -159,7 +176,8 @@ local function initializeFrame(frame, db)
   frame.db = db
   
   frame:Hide()
-  frame:SetSize(db.width, db.height)
+  local UIScale = UIParent:GetScale()
+  frame:SetSize(math.ceil(db.width * UIScale), math.ceil(db.height * UIScale))
   frame:ClearAllPoints()
   frame:SetPoint(db.anchor, db.posX, db.posY)
   
