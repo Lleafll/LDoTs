@@ -13,6 +13,10 @@ local LSM = LibStub('LibSharedMedia-3.0')
 -- Upvalues --
 --------------
 local GetTime = GetTime
+local math_ceil = math.ceil
+local string_match = string.match
+local tonumber = tonumber
+local tostring = tostring
 local UnitAura = UnitAura
 
 
@@ -181,6 +185,9 @@ local function auraEventHandler(self, event, ...)
   if event == "NAME_PLATE_UNIT_ADDED" or event == "PLAYER_TARGET_CHANGED"then
     self.duration = nil
     self.expires = nil
+  elseif event == "NAME_PLATE_UNIT_REMOVED" then
+    self:Hide()
+    return
   end
   
   local db = self.db
@@ -262,7 +269,7 @@ local function initializeFrame(frame, db)
   
   frame:Hide()
   local UIScale = UIParent:GetScale()
-  frame:SetSize(math.ceil(db.width * UIScale), math.ceil(db.height * UIScale))
+  frame:SetSize(math_ceil(db.width * UIScale), math_ceil(db.height * UIScale))
   frame:ClearAllPoints()
   frame:SetPoint(db.anchor, db.posX, db.posY)
   
@@ -283,19 +290,53 @@ local function initializeFrame(frame, db)
     frame:SetScript("OnEvent", nil)
   else
     frame:Lock()
-    frame:RegisterUnitEvent("UNIT_AURA", db.unitID)
-    if db.unitID == "target" then
+    
+    local unitID = db.unitID
+    frame:RegisterUnitEvent("UNIT_AURA", unitID)
+    
+    if string_match(unitID, "^target") then
       frame:RegisterEvent("PLAYER_TARGET_CHANGED")
     end
+    
+    local unitMatch, targetMatch = string_match(unitID, "^(.+)(target)$")
+    if unitMatch and targetMatch then
+      frame:RegisterUnitEvent("UNIT_TARGET", unitMatch)
+    end
+    
+    if string_match(unitID, "^boss") then
+      frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+    end
+    
+    local nameplateMatch = string_match(unitID, "^nameplate%d")
+    if nameplateMatch then
+      frame:RegisterUnitEvent("NAME_PLATE_CREATED", nameplateMatch)
+      frame:RegisterUnitEvent("NAME_PLATE_UNIT_ADDED", nameplateMatch)
+      frame:RegisterUnitEvent("NAME_PLATE_UNIT_REMOVED", nameplateMatch)
+    end
+    
+    if db.pandemic and db.pandemicExtra > 0 and db.pandemicHasted then
+      frame:RegisterEvent("UNIT_SPELL_HASTE")
+    end
+    
     frame:SetScript("OnEvent", auraEventHandler)
+    
     auraEventHandler(frame)
   end
 end
 
 local function buildFrames(db)
   for k, v in pairs(db) do
-    local frame = getAuraFrame()
-    initializeFrame(frame, v)
+    if v.multitarget then
+      for k2 = 1, v.multitargetCount do
+        local v2 = v[tostring(k2)]
+        if v2 then
+          setmetatable(v2, {__index = v})  -- Might be hacky and corrupt the database
+          initializeFrame(getAuraFrame(), v2)
+        end
+      end
+    else
+      initializeFrame(getAuraFrame(), v)
+    end
   end
 end
 
