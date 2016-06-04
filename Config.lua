@@ -157,7 +157,7 @@ local function options()
 		name = addonName,
 		childGroups = "tab",
 		args = {
-      unlock = {
+      --[[unlock = {
         order = 1,
         type = "execute",
         name = "Toggle Lock",
@@ -165,7 +165,7 @@ local function options()
           Addon.unlocked = not Addon.unlocked
           Addon:Build()
         end,
-      },
+      },]]--
       class = {
         order = 10,
         type = "group",
@@ -197,6 +197,12 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName
 -----------------
 local ACD = LibStub("AceConfigDialog-3.0")
 ACD:SetDefaultSize(addonName, 400, 650)
+local optionsFrame = LibStub("AceGUI-3.0"):Create("Frame")  -- Create own container so we can register OnShow and OnHide
+optionsFrame:Hide()
+optionsFrame:SetCallback("OnClose", function()
+  Addon.unlocked = nil
+  Addon:Build()
+end)
 
 
 ------------------
@@ -206,7 +212,9 @@ function Addon:HandleChatCommand(input)
   if ACD.OpenFrames[addonName] then  -- TODO: Check why this works
 		ACD:Close(addonName)
 	else
-		ACD:Open(addonName)
+    Addon.unlocked = true
+    Addon:Build()
+		ACD:Open(addonName, optionsFrame)
 	end
 end
 
