@@ -186,9 +186,9 @@ local function auraEventHandler(self, event, ...)
   local db = self.db
   local _, count, duration, expires
   if db.auraType == "Buff" then
-    _, _, _, count, _, duration, expires = UnitBuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, _, count, _, duration, expires = UnitBuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   else
-    _, _, _, count, _, duration, expires = UnitDebuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, _, count, _, duration, expires = UnitDebuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   end
   
   if duration then
@@ -268,7 +268,6 @@ local function initializeFrame(frame, db)
   
   local name, _, icon = GetSpellInfo(db.spellID)
   frame.texture:SetTexture(icon or "Interface\\Icons\\inv-misc-questionmark")
-  frame.spellName = name
   
   if db.showStacks then
     frame.stacks:Show()

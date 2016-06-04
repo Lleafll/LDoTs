@@ -24,7 +24,7 @@ local function addAuras(tbl, db)
       else
         db["New Aura"] = {
           name = "New Aura",
-          spellID = "",
+          spell = "",
           unitID = "target",
           auraType = "Debuff",
           ownOnly = true,
@@ -75,11 +75,16 @@ local function addAuras(tbl, db)
             Addon:Build()
           end,
         },
-        spellID = {
+        spell = {
           order = 1,
-          name = "Spell ID: "..(GetSpellInfo(v.spellID) or ""),
+          name = "Spell",
           type = "input",
-          -- TODO: Add validation
+          set = function(info, value)
+            local numberValue = tonumber(value)
+            value = numberValue and numberValue or value
+            db[info[#info-1]][info[#info]] = value
+            Addon:Build()
+          end,
         },
         unitID = {
           order = 2,
