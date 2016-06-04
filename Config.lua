@@ -26,12 +26,14 @@ local function addAuras(tbl, db)
           spellID = "",
           unitID = "target",
           ownOnly = true,
-          pandemic = true,
+          pandemicExtra = 0,
+          pandemicHasted = true,
           height = 30,
           width = 30,
           anchor = "CENTER",
           posX = 0,
           posY = 0,
+          hideSwirl = true,
         }
       end
     end
@@ -89,6 +91,16 @@ local function addAuras(tbl, db)
           name = "Pandemic",
           type = "toggle",
         },
+        pandemicExtra = {
+          order = 4.1,
+          name = "Add to Pandemic Duration",
+          type = "input",
+        },
+        pandemicHasted = {
+          order = 4.2,
+          name = "Extra Pandemic Time is Hasted",
+          type = "toggle",
+        },
         height = {
           order = 5,
           name = "Height",
@@ -104,6 +116,11 @@ local function addAuras(tbl, db)
           min = 1,
           softMax = 100,
           step = 1
+        },
+        hideSwirl = {
+          order = 6.1,
+          name = "Hide Cooldown Swirl",
+          type = "toggle",
         },
         anchor = {
           order = 7,
@@ -198,7 +215,7 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName
 -- Options GUI --
 -----------------
 local ACD = LibStub("AceConfigDialog-3.0")
-ACD:SetDefaultSize(addonName, 400, 650)
+ACD:SetDefaultSize(addonName, 800, 650)
 local optionsFrame = LibStub("AceGUI-3.0"):Create("Frame")  -- Create own container so we can register OnShow and OnHide
 optionsFrame:Hide()
 optionsFrame:SetCallback("OnClose", function()

@@ -12,6 +12,7 @@ local LSM = LibStub('LibSharedMedia-3.0')
 --------------
 -- Upvalues --
 --------------
+local GetTime = GetTime
 local UnitAura = UnitAura
 
 
@@ -69,6 +70,7 @@ local function frameUnlock(self)  -- TODO: Events should be supressed
   self:SetScript("OnMouseDown", onMouseDownHandler)
   self:SetScript("OnMouseUp", onMouseUpHandler)
   self:SetScript("OnMouseWheel", onMouseWheelHandler)
+  self.pandemicBorder:Hide()
 end
 
 local function frameLock(self)
@@ -92,6 +94,12 @@ local backdrop = {
   edgeSize = 1,
   padding = -1
 }
+local pandemicBackdrop = {
+  bgFile = nil,
+  edgeFile = LSM:Fetch('background', "Solid"),
+  tile = false,
+  edgeSize = 2,
+}
 
 local function createAuraFrame()
   local frame = CreateFrame("Frame")
@@ -104,13 +112,19 @@ local function createAuraFrame()
   frame.backdrop:SetOutside()
   frame.backdrop:SetBackdrop(backdrop)
   frame.backdrop:SetBackdropBorderColor(0, 0, 0, 1)
-  --frame.backdrop:SetBackdropColor(1, 1, 1, .8)
   local frameLevel = frame:GetFrameLevel()
   frame.backdrop:SetFrameLevel(frameLevel > 0 and (frameLevel - 1) or 0)
   
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetAllPoints()
   frame.cooldown:SetDrawEdge(false)
+  frame.cooldown:SetReverse(true)
+  
+  frame.pandemicBorder = CreateFrame("Frame", nil, frame)
+  frame.pandemicBorder:SetAllPoints()
+  frame.pandemicBorder:SetBackdrop(pandemicBackdrop)
+  frame.pandemicBorder:SetBackdropBorderColor(0, 1, 0, 1)
+  frame.pandemicBorder:Hide()
   
   frame.Unlock = frameUnlock
   frame.Lock = frameLock
@@ -152,13 +166,13 @@ end
 -- Aura Behavior --
 -------------------
 local function auraEventHandler(self, event, ...)
-  if event == "NAME_PLATE_UNIT_ADDED" then
+  if event == "NAME_PLATE_UNIT_ADDED" or event == "PLAYER_TARGET_CHANGED"then
     self.duration = nil
     self.expires = nil
   end
   
   local db = self.db
-  local _, _, _, _, _, duration, expires = UnitDebuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
+  local _, _, _, count, _, duration, expires = UnitDebuff(db.unitID, self.spellName, nil, db.ownOnly and "PLAYER" or nil)
   
   if duration then
     if duration ~= self.duration or expires ~= self.expires then
@@ -167,9 +181,52 @@ local function auraEventHandler(self, event, ...)
       self.duration = duration
       self.expires = expires
     end
+    
+    if db.pandemic then
+      local timeStamp = GetTime()
+      local pandemic = duration * 0.3 + db.pandemicExtra * (1 + (db.pandemicHasted and (GetHaste() / 100) or 0))  -- TODO: cache pandemic duration
+      if expires - timeStamp < pandemic then
+        self.pandemicBorder:Show()
+      else
+        Addon:AddPandemicTimer(self, pandemic)
+        self.pandemicBorder:Hide()
+      end
+    end
   else
     self:Hide()
   end
+end
+
+do
+  local pandemicTimers = {}
+  
+  function Addon:AddPandemicTimer(frame, pandemic)
+    if not pandemicTimers[frame] or pandemicTimers[frame] > pandemic then
+      pandemicTimers[frame] = pandemic
+    end
+  end
+  
+  function Addon:ClearPandemicTimers()
+    for k, v in pairs(pandemicTimers) do
+      pandemicTimers[k] = nil
+    end
+  end
+  
+  local pandemicTimer = CreateFrame("Frame")
+  local totalElapsed = 0
+  pandemicTimer:SetScript("OnUpdate", function(self, elapsed)
+    totalElapsed = totalElapsed + elapsed
+    if totalElapsed > 0.1 then
+      local timeStamp = GetTime()
+      for k, v in pairs(pandemicTimers) do
+        if v < timeStamp then
+          auraEventHandler(k)
+          pandemicTimers[k] = 0
+        end
+      end
+      totalElapsed = 0
+    end
+  end)
 end
 
 local function initializeFrame(frame, db)
@@ -185,13 +242,17 @@ local function initializeFrame(frame, db)
   frame.texture:SetTexture(icon or "Interface\\Icons\\inv-misc-questionmark")
   frame.spellName = name
   
+  frame.cooldown:SetDrawSwipe(not db.hideSwirl)
+  
   if Addon.unlocked then
     frame:Unlock()
     frame:SetScript("OnEvent", nil)
   else
     frame:Lock()
     frame:RegisterUnitEvent("UNIT_AURA", db.unitID)
-    -- TODO: Add events based on unitID
+    if db.unitID == "target" then
+      frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    end
     frame:SetScript("OnEvent", auraEventHandler)
     auraEventHandler(frame)
   end
@@ -212,4 +273,6 @@ function Addon:Build()
   wipeAuraFrames()
   buildFrames(self.db.class.auras)
   buildFrames(self.db.global.auras)
+  
+  self:ClearPandemicTimers()
 end
