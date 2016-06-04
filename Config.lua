@@ -28,6 +28,7 @@ local function addAuras(tbl, db)
           unitID = "target",
           auraType = "Debuff",
           ownOnly = true,
+          showStacks = false,
           pandemic = true,
           pandemicExtra = 0,
           pandemicHasted = true,
@@ -101,6 +102,11 @@ local function addAuras(tbl, db)
           name = "Own Only",
           type = "toggle",
         },
+        showStacks = {
+          order = 3.1,
+          name = "Show Stacks",
+          type = "toggle",
+        },
         pandemic = {
           order = 4,
           name = "Pandemic",
@@ -114,6 +120,11 @@ local function addAuras(tbl, db)
         pandemicHasted = {
           order = 4.2,
           name = "Extra Pandemic Time is Hasted",
+          type = "toggle",
+        },
+        hideSwirl = {
+          order = 4.3,
+          name = "Hide Cooldown Swirl",
           type = "toggle",
         },
         height = {
@@ -131,11 +142,6 @@ local function addAuras(tbl, db)
           min = 1,
           softMax = 100,
           step = 1
-        },
-        hideSwirl = {
-          order = 6.1,
-          name = "Hide Cooldown Swirl",
-          type = "toggle",
         },
         anchor = {
           order = 7,

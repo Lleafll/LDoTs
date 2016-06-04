@@ -112,11 +112,15 @@ local function createAuraFrame()
   frame.texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
   
   frame.backdrop = CreateFrame("Frame", nil, frame)
-  frame.backdrop:SetOutside()
+  frame.backdrop:SetAllPoints()
   frame.backdrop:SetBackdrop(backdrop)
   frame.backdrop:SetBackdropBorderColor(0, 0, 0, 1)
   local frameLevel = frame:GetFrameLevel()
   frame.backdrop:SetFrameLevel(frameLevel > 0 and (frameLevel - 1) or 0)
+  
+  frame.stacks = frame:CreateFontString()
+  frame.stacks:SetPoint("BOTTOMRIGHT")
+  frame.stacks:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
   
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetAllPoints()
@@ -196,6 +200,10 @@ local function auraEventHandler(self, event, ...)
       self.expires = expires
     end
     
+    if db.showStacks then
+      self.stacks:SetText(count)
+    end
+    
     if db.pandemic then
       local timeStamp = GetTime()
       local pandemicExtra = db.pandemicExtra
@@ -261,6 +269,12 @@ local function initializeFrame(frame, db)
   local name, _, icon = GetSpellInfo(db.spellID)
   frame.texture:SetTexture(icon or "Interface\\Icons\\inv-misc-questionmark")
   frame.spellName = name
+  
+  if db.showStacks then
+    frame.stacks:Show()
+  else
+    frame.stacks:Hide()
+  end
   
   frame.cooldown:SetDrawSwipe(not db.hideSwirl)
   
