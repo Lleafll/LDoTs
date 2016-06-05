@@ -185,6 +185,8 @@ local function auraEventHandler(self, event, ...)
   if event == "NAME_PLATE_UNIT_ADDED" or event == "PLAYER_TARGET_CHANGED"then
     self.duration = nil
     self.expires = nil
+    self.pandemic = nil
+    self.inPandemic = nil
   elseif event == "NAME_PLATE_UNIT_REMOVED" then
     self:Hide()
     return
@@ -199,18 +201,8 @@ local function auraEventHandler(self, event, ...)
   end
   
   if duration then
-  
-    if duration ~= self.duration or expires ~= self.expires then
-      self:Show()
-      self.cooldown:SetCooldown(expires - duration, duration)
-      self.duration = duration
-      self.expires = expires
-    end
-    
-    if db.showStacks then
-      self.stacks:SetText(count)
-    end
-    
+    local pandemic
+    local inPandemic
     if db.pandemic and expires > 0 then
       local timeStamp = GetTime()
       local pandemicExtra = db.pandemicExtra
@@ -218,13 +210,31 @@ local function auraEventHandler(self, event, ...)
         pandemicExtra = pandemicExtra/ (1 + GetHaste() / 100)
         pandemicExtra = pandemicExtra < 1 and 1 or pandemicExtra
       end
-      local pandemic = duration * 0.3 + pandemicExtra  -- TODO: cache pandemic duration
-      if expires - timeStamp < pandemic then
+      pandemic = duration * 0.3 + pandemicExtra  -- TODO: cache pandemic duration
+      inPandemic = expires - timeStamp < pandemic
+      if inPandemic then
         self.pandemicBorder:Show()
       else
         Addon:AddPandemicTimer(self, expires - pandemic)
         self.pandemicBorder:Hide()
       end
+    end
+  
+    if duration ~= self.duration or expires ~= self.expires or pandemic ~= self.pandemic or inPandemic ~= self.inPandemic then
+      self:Show()
+      if expires > 0 then
+        if db.pandemic then
+          self.cooldown:SetCooldown(inPandemic and (expires - pandemic) or (expires - duration), inPandemic and (pandemic) or (duration - pandemic))
+        else
+          self.cooldown:SetCooldown(expires - duration, duration)
+        end
+      end
+      self.duration = duration
+      self.expires = expires
+    end
+    
+    if db.showStacks then
+      self.stacks:SetText(count)
     end
     
   else
@@ -236,7 +246,7 @@ do
   local pandemicTimers = {}
   
   function Addon:AddPandemicTimer(frame, pandemic)    
-    if not pandemicTimers[frame] or pandemicTimers[frame] > pandemic then
+    if not pandemicTimers[frame] or pandemicTimers[frame] ~= pandemic then
       pandemicTimers[frame] = pandemic
     end
   end
@@ -251,7 +261,7 @@ do
   local totalElapsed = 0
   pandemicTimer:SetScript("OnUpdate", function(self, elapsed)
     totalElapsed = totalElapsed + elapsed
-    if totalElapsed > 0.1 then
+    if totalElapsed > 0.05 then
       local timeStamp = GetTime()
       for k, v in pairs(pandemicTimers) do
         if v < timeStamp then
