@@ -95,7 +95,7 @@ local function addAuras(tbl, db)
     type = "range",
     min = -math_ceil(GetScreenWidth()),
     max = math_ceil(GetScreenWidth()),
-    step = 0.1
+    step = 1
   }
   local posY = {
     order = 12,
@@ -103,7 +103,7 @@ local function addAuras(tbl, db)
     type = "range",
     min = -math_ceil(GetScreenHeight()),
     max = math_ceil(GetScreenHeight()),
-    step = 0.1
+    step = 1
   }
   
   for k, v in pairsByKeys(db) do
@@ -314,7 +314,7 @@ local function addAuras(tbl, db)
           type = "range",
           softMin = -100,
           softMax = 100,
-          step = 0.1,
+          step = 1,
           hidden = not v.multitarget,
         },
         arrangeYDistance = {
@@ -323,7 +323,7 @@ local function addAuras(tbl, db)
           type = "range",
           softMin = -100,
           softMax = 100,
-          step = 0.1,
+          step = 1,
           hidden = not v.multitarget,
         },
         headerDelete = {
@@ -421,6 +421,10 @@ optionsFrame:SetCallback("OnClose", function()
   Addon.unlocked = nil
   Addon:Build()
 end)
+function Addon:Options()
+  self:Build()
+  ACD:Open(addonName, optionsFrame)
+end
 
 
 ------------------
@@ -430,9 +434,8 @@ function Addon:HandleChatCommand(input)
   if ACD.OpenFrames[addonName] then  -- TODO: Check why this works
 		ACD:Close(addonName)
 	else
-    Addon.unlocked = true
-    Addon:Build()
-		ACD:Open(addonName, optionsFrame)
+    self.unlocked = true
+		self:Options()
 	end
 end
 

@@ -5,7 +5,6 @@ local Addon = LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---------------
 -- Libraries --
 ---------------
-local ACR = LibStub("AceConfigRegistry-3.0")
 local LSM = LibStub('LibSharedMedia-3.0')
 
 
@@ -51,9 +50,10 @@ local function onMouseUpHandler(self, button)
   self:StopMovingOrSizing()
   local _, _, anchor, posX, posY = self:GetPoint()
   self.db.anchor = anchor
-  self.db.posX = posX
-  self.db.posY = posY
-  ACR:NotifyChange(addonName)
+  local UIScale = UIParent:GetScale()
+  self.db.posX = math_ceil(posX / UIScale - 0.5)
+  self.db.posY = math_ceil(posY / UIScale - 0.5)
+  Addon:Options()
 end
 
 local function onMouseWheelHandler(self, delta)
@@ -62,8 +62,7 @@ local function onMouseWheelHandler(self, delta)
   else
     self.db.posY = self.db.posY + delta
   end
-  self:SetPoint(self.db.anchor, self.db.posX, self.db.posY)
-  ACR:NotifyChange(addonName)
+  Addon:Options()
 end
 
 local function frameUnlock(self)  -- TODO: Events should be supressed
@@ -99,7 +98,7 @@ local backdrop = {
   edgeFile = LSM:Fetch('background', "Solid"),
   tile = false,
   edgeSize = 1,
-  padding = -1
+  padding = 1
 }
 local pandemicBackdrop = {
   bgFile = nil,
@@ -279,9 +278,9 @@ local function initializeFrame(frame, db)
   
   frame:Hide()
   local UIScale = UIParent:GetScale()
-  frame:SetSize(math_ceil(db.width * UIScale), math_ceil(db.height * UIScale))
+  frame:SetSize(db.width * UIScale, db.height * UIScale)
   frame:ClearAllPoints()
-  frame:SetPoint(db.anchor, db.posX, db.posY)
+  frame:SetPoint(db.anchor, db.posX * UIScale, db.posY * UIScale)
   
   local name, _, icon = GetSpellInfo(db.spell)
   icon = (db.iconOverride and db.iconOverride ~= "") and "Interface\\Icons\\"..db.iconOverride or (icon and icon ~= "") and icon or "Interface\\Icons\\inv-misc-questionmark"
