@@ -2,11 +2,18 @@ local addonName, addonTable = ...
 local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
 
 
+---------------
+-- Libraries --
+---------------
+local ACD = LibStub("AceConfigDialog-3.0")
+
+
 --------------
 -- Upvalues --
 --------------
 local math_ceil = math.ceil
 local pairs = pairs
+local string_match = string.match
 local table_sort = table.sort
 
 
@@ -38,7 +45,7 @@ local function addAuras(tbl, db)
     order = order,
     name = "New Aura",
     type = "execute",
-    func = function()
+    func = function(info)
       if db["New Aura"] then
         print(addonName..": New Aura already exists")
       else
@@ -56,61 +63,29 @@ local function addAuras(tbl, db)
           pandemicHasted = true,
           --hideSwirl = false,
           iconOverride = "",
-          height = 30,
-          width = 30,
+          height = 32,
+          width = 32,
           arrangePriority = "Horizontal-Vertical",
           arrangeRows = 1,
-          arrangeXDistance = 32,
-          arrangeYDistance = 32,
+          arrangeXDistance = 33,
+          arrangeYDistance = 33,
           anchor = "CENTER",
           posX = 0,
           posY = 0,
         }
+        ACD:SelectGroup(addonName, info[#info-1], "New Aura")
       end
     end
   }
   
   order = order + 1
     
-  local anchor = {
-    order = 10,
-    name = "Anchor",
-    type = "select",
-    style = "dropdown",
-    values = {
-      ["CENTER"] = "CENTER",
-      ["BOTTOM"] = "BOTTOM",
-      ["TOP"] = "TOP",
-      ["LEFT"] = "LEFT",
-      ["RIGHT"] = "RIGHT",
-      ["BOTTOMLEFT"] = "BOTTOMLEFT",
-      ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
-      ["TOPLEFT"] = "TOPLEFT",
-      ["TOPRIGHT"] = "TOPRIGHT"
-    }
-  }
-  local posX = {
-    order = 11,
-    name = "X Position",
-    type = "range",
-    min = -math_ceil(GetScreenWidth()),
-    max = math_ceil(GetScreenWidth()),
-    step = 1
-  }
-  local posY = {
-    order = 12,
-    name = "Y Position",
-    type = "range",
-    min = -math_ceil(GetScreenHeight()),
-    max = math_ceil(GetScreenHeight()),
-    step = 1
-  }
-  
   for k, v in pairsByKeys(db) do
     tbl[k] = {
       order = order,
       name = k,
       type = "group",
+      icon = v.iconOverride and v.iconOverride ~= "" and "Interface\\Icons\\"..v.iconOverride or "Interface\\Icons\\ability_garrison_orangebird",
       get = function(info)
         return db[info[#info-1]][info[#info]]
       end,
@@ -119,13 +94,18 @@ local function addAuras(tbl, db)
         Addon:Build()
       end,
       args = {
-        auraConfig = {
+        disable = {
           order = 0.1,
+          name = "Disable",
+          type = "toggle"
+        },
+        auraConfigHeader = {
+          order = 0.2,
           name = "Aura Config",
           type = "header"
         },
         name = {
-          order = 0.2,
+          order = 0.3,
           name = "Name",
           type = "input",
           validate = function(info, value)
@@ -138,6 +118,7 @@ local function addAuras(tbl, db)
             db[info[#info-1]][info[#info]] = value
             db[value] = v
             db[k] = nil
+            ACD:SelectGroup(addonName, info[#info-2], value)
             Addon:Build()
           end,
         },
@@ -149,6 +130,12 @@ local function addAuras(tbl, db)
             local numberValue = tonumber(value)
             value = numberValue and numberValue or value
             db[info[#info-1]][info[#info]] = value
+            if not v.iconOverride or v.iconOverride == "" then
+              local _, _, icon = GetSpellInfo(value)
+              if icon then
+                v.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
+              end
+            end
             Addon:Build()
           end,
         },
@@ -210,7 +197,7 @@ local function addAuras(tbl, db)
           order = 4.2,
           name = "Extra Pandemic Time is Hasted",
           type = "toggle",
-          hidden = not v.pandemic
+          hidden = not v.pandemic or v.pandemicExtra == 0
         },
         headerVisuals = {
           order = 4.4,
@@ -219,7 +206,7 @@ local function addAuras(tbl, db)
         },
         iconOverride = {
           order = 4.45,
-          name = "Icon Override",
+          name = "Icon",
           type = "input",
         },
         showStacks = {
@@ -253,9 +240,42 @@ local function addAuras(tbl, db)
           name = "Positioning",
           type = "header",
         },
-        anchor = anchor,
-        posX = posX,
-        posY = posY,
+        anchor = {
+          order = 10,
+          name = "Anchor",
+          type = "select",
+          style = "dropdown",
+          values = {
+            ["CENTER"] = "CENTER",
+            ["BOTTOM"] = "BOTTOM",
+            ["TOP"] = "TOP",
+            ["LEFT"] = "LEFT",
+            ["RIGHT"] = "RIGHT",
+            ["BOTTOMLEFT"] = "BOTTOMLEFT",
+            ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
+            ["TOPLEFT"] = "TOPLEFT",
+            ["TOPRIGHT"] = "TOPRIGHT"
+          },
+          hidden = v.multitarget
+        },
+        posX = {
+          order = 11,
+          name = "X Position",
+          type = "range",
+          min = -math_ceil(GetScreenWidth()),
+          max = math_ceil(GetScreenWidth()),
+          step = 1,
+          hidden = v.multitarget
+        },
+        posY = {
+          order = 12,
+          name = "Y Position",
+          type = "range",
+          min = -math_ceil(GetScreenHeight()),
+          max = math_ceil(GetScreenHeight()),
+          step = 1,
+          hidden = v.multitarget
+        },
         arrangeInGrid = {
           order = 20,
           name = "Arrange Icons",
@@ -270,9 +290,9 @@ local function addAuras(tbl, db)
               for m = 1, v.arrangeRows do
                 for n = 1, columns do
                   local numberString = tostring(i)
-                  v[numberString].anchor = v.anchor
-                  v[numberString].posX = v.posX + xOffset
-                  v[numberString].posY = v.posY + yOffset
+                  v[numberString].anchor = v["1"].anchor
+                  v[numberString].posX = v["1"].posX + xOffset
+                  v[numberString].posY = v["1"].posY + yOffset
                   xOffset = xOffset + v.arrangeXDistance
                   i = i + 1
                   if i > v.multitargetCount then
@@ -343,7 +363,7 @@ local function addAuras(tbl, db)
       }
     }
     
-    if v.multitarget then
+    if v.multitarget then      
       for i = 1, v.multitargetCount do
         local name = tostring(i)
         
@@ -366,9 +386,44 @@ local function addAuras(tbl, db)
             Addon:Build()
           end,
           args = {
-            anchor = anchor,
-            posX = posX,
-            posY = posY,
+            headerPositioning = {
+              order = 6.9,
+              name = "Positioning",
+              type = "header",
+            },
+            anchor = {
+              order = 10,
+              name = "Anchor",
+              type = "select",
+              style = "dropdown",
+              values = {
+                ["CENTER"] = "CENTER",
+                ["BOTTOM"] = "BOTTOM",
+                ["TOP"] = "TOP",
+                ["LEFT"] = "LEFT",
+                ["RIGHT"] = "RIGHT",
+                ["BOTTOMLEFT"] = "BOTTOMLEFT",
+                ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
+                ["TOPLEFT"] = "TOPLEFT",
+                ["TOPRIGHT"] = "TOPRIGHT"
+              },
+            },
+            posX = {
+              order = 11,
+              name = "X Position",
+              type = "range",
+              min = -math_ceil(GetScreenWidth()),
+              max = math_ceil(GetScreenWidth()),
+              step = 1,
+            },
+            posY = {
+              order = 12,
+              name = "Y Position",
+              type = "range",
+              min = -math_ceil(GetScreenHeight()),
+              max = math_ceil(GetScreenHeight()),
+              step = 1,
+            }
           }
         }
       end
@@ -413,9 +468,8 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName
 -----------------
 -- Options GUI --
 -----------------
-local ACD = LibStub("AceConfigDialog-3.0")
-ACD:SetDefaultSize(addonName, 800, 650)
-local optionsFrame = LibStub("AceGUI-3.0"):Create("Frame")  -- Create own container so we can register OnShow and OnHide
+ACD:SetDefaultSize(addonName, 800, 700)
+local optionsFrame = LibStub("AceGUI-3.0"):Create("Frame")  -- Create own container so we can register OnClose
 optionsFrame:Hide()
 optionsFrame:SetCallback("OnClose", function()
   Addon.unlocked = nil
@@ -423,7 +477,7 @@ optionsFrame:SetCallback("OnClose", function()
 end)
 function Addon:Options()
   self:Build()
-  ACD:Open(addonName, optionsFrame)
+  ACD:Open(addonName, optionsFrame)  -- Also use for refresh (ACD:NotifyChange() - which does not work with custom containers - would do the same)
 end
 
 

@@ -192,11 +192,11 @@ local function auraEventHandler(self, event, ...)
   end
   
   local db = self.db
-  local _, count, duration, expires
+  local _, icon, count, duration, expires
   if db.auraType == "Buff" then
-    _, _, _, count, _, duration, expires = UnitBuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, icon, count, _, duration, expires = UnitBuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   else
-    _, _, _, count, _, duration, expires = UnitDebuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, icon, count, _, duration, expires = UnitDebuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   end
   
   if duration then
@@ -221,12 +221,23 @@ local function auraEventHandler(self, event, ...)
   
     if duration ~= self.duration or expires ~= self.expires or pandemic ~= self.pandemic or inPandemic ~= self.inPandemic then
       self:Show()
+      
+      if not self.icon then
+        self.texture:SetTexture(icon)
+        local tbl = getmetatable(db)  -- Get parent if multitarget frame
+        tbl = tbl or db
+        tbl.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
+        self.icon = true
+      end
+      
       if expires > 0 then
         if db.pandemic then
           self.cooldown:SetCooldown(inPandemic and (expires - pandemic) or (expires - duration), inPandemic and (pandemic) or (duration - pandemic))
         else
           self.cooldown:SetCooldown(expires - duration, duration)
         end
+      elseif self.cooldown:GetCooldownDuration() then
+        self.cooldown:SetCooldown(0, 0)
       end
       self.duration = duration
       self.expires = expires
@@ -282,8 +293,16 @@ local function initializeFrame(frame, db)
   frame:ClearAllPoints()
   frame:SetPoint(db.anchor, db.posX * UIScale, db.posY * UIScale)
   
-  local name, _, icon = GetSpellInfo(db.spell)
-  icon = (db.iconOverride and db.iconOverride ~= "") and "Interface\\Icons\\"..db.iconOverride or (icon and icon ~= "") and icon or "Interface\\Icons\\inv-misc-questionmark"
+  local _, icon
+  if db.iconOverride and db.iconOverride ~= "" then
+    icon = "Interface\\Icons\\"..db.iconOverride
+  end
+  if icon then
+    frame.icon = true
+  else
+    frame.icon = false
+    icon = "Interface\\Icons\\ability_garrison_orangebird"
+  end
   frame.texture:SetTexture(icon)
   
   if db.showStacks then
@@ -338,13 +357,15 @@ local function buildFrames(db)
     if v.multitarget then
       for k2 = 1, v.multitargetCount do
         local v2 = v[tostring(k2)]
-        if v2 then
+        if v2 and not v2.disable then
           setmetatable(v2, {__index = v})  -- Might be hacky and corrupt the database
           initializeFrame(getAuraFrame(), v2)
         end
       end
     else
-      initializeFrame(getAuraFrame(), v)
+      if not v.disable then
+        initializeFrame(getAuraFrame(), v)
+      end
     end
   end
 end
