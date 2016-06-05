@@ -147,12 +147,12 @@ local function addAuras(tbl, db)
         },
         multitarget = {
           order = 2.1,
-          name = "Multitarget",
+          name = "Multi Unit",
           type = "toggle"
         },
         multitargetCount = {
           order = 2.2,
-          name = "Multitarget Count",
+          name = "Multi Unit Count",
           type = "range",
           min = 1,
           softMax = 20,
