@@ -6,6 +6,7 @@ local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceCo
 -- Libraries --
 ---------------
 local ACD = LibStub("AceConfigDialog-3.0")
+local ADB = LibStub("AceDB-3.0")
 
 
 --------------
@@ -33,6 +34,58 @@ local function pairsByKeys(t, f)  -- https://www.lua.org/pil/19.3.html
   end
   return iter
 end
+
+
+----------------------
+-- Default Settings --
+----------------------
+local defaultSettings = {
+  global = {
+    auras = {},
+    groups = {}
+  },
+  class = {
+    auras = {},
+    groups = {}
+  }
+}
+
+--[[local defaultSettingsAura = {
+  spell = "",
+  unitID = "target",
+  --multitarget = false,
+  multitargetCount = 1,
+  auraType = "Debuff",
+  ownOnly = true,
+  --showStacks = false,
+  pandemic = true,
+  pandemicExtra = 0,
+  pandemicHasted = true,
+  --hideSwirl = false,
+  iconOverride = "",
+  height = 32,
+  width = 32,
+  arrangePriority = "Horizontal-Vertical",
+  arrangeRows = 1,
+  arrangeXDistance = 33,
+  arrangeYDistance = 33,
+  anchor = "CENTER",
+  posX = 0,
+  posY = 0,
+}
+aurasMt = {__index = function(k, t)
+  return defaultSettingsAura
+end}
+setmetatable(defaultSettings.class.auras, aurasMt)
+setmetatable(defaultSettings.global.auras, aurasMt)
+
+local defaultSettingsGroup = {
+}
+groupsMt = {__index = function(k, t)
+  return defaultSettingsGroup
+end}
+setmetatable(defaultSettings.class.groups, groupsMt)
+setmetatable(defaultSettings.global.groups, groupsMt)]]--
 
 
 -------------
@@ -92,7 +145,7 @@ local function addGroups(parent, db)
       args = {
         -- dev
         parent = {
-          order = 0.01,
+          order = 1.1,
           name = "Parent",
           type = "input",
           get = function(info)
@@ -210,7 +263,7 @@ local function addAuras(optionsTbl, db)
       args = {
         -- dev
         parent = {
-          order = 0.01,
+          order = 0.11,
           name = "Parent",
           type = "input"
         },
@@ -600,7 +653,7 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName
 -----------------
 -- Options GUI --
 -----------------
-ACD:SetDefaultSize(addonName, 800, 700)
+ACD:SetDefaultSize(addonName, 800, 750)
 local optionsFrame = LibStub("AceGUI-3.0"):Create("Frame")  -- Create own container so we can register OnClose
 optionsFrame:Hide()
 optionsFrame:SetCallback("OnClose", function()
@@ -631,21 +684,8 @@ Addon:RegisterChatCommand(addonName, "HandleChatCommand")
 --------------------
 -- Initialization --
 --------------------
-local defaultSettings = {
-  global = {
-    auras = {},
-    groups = {
-    }
-  },
-  class = {
-    auras = {},
-    groups = {
-    }
-  }
-}
-
 function Addon:OnInitialize()
-	self.db = LibStub("AceDB-3.0"):New(addonName.."DB", defaultSettings, true)
+	self.db = ADB:New(addonName.."DB", defaultSettings, true)
   
   self:RegisterEvent("PLAYER_ENTERING_WORLD", function()  -- Delay so UIScale can be read
     Addon:Build()
