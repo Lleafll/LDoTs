@@ -90,6 +90,19 @@ local function addGroups(parent, db)
       name = groupName,
       type = "group",
       args = {
+        -- dev
+        parent = {
+          order = 0.01,
+          name = "Parent",
+          type = "input",
+          get = function(info)
+            return groupDB.parent
+          end,
+          set = function(info, value)
+            groupDB.parent = value
+          end,
+        },
+        -- end-dev
         name = {
           order = 1,
           name = "Name",
