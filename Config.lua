@@ -183,7 +183,7 @@ local function addAuras(optionsTbl, db)
             return auraName
           end,
           set = function(info, value)
-            db[info[#info-1]][info[#info]] = value
+            auraDB.name = value
             db[value] = auraDB
             db[auraName] = nil
             ACD:SelectGroup(addonName, info[#info-2], value)
@@ -197,7 +197,7 @@ local function addAuras(optionsTbl, db)
           set = function(info, value)
             local numberValue = tonumber(value)
             value = numberValue and numberValue or value
-            db[info[#info-1]][info[#info]] = value
+            auraDB.spell = value
             if not auraDB.iconOverride or auraDB.iconOverride == "" then
               local _, _, icon = GetSpellInfo(value)
               if icon then
