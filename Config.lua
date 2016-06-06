@@ -38,10 +38,70 @@ end
 -------------
 -- Options --
 -------------
-local function addAuras(tbl, db)  
-  local order = #tbl + 1
+
+--[[  
+----  Pretty wasteful with table generation which isn't an issue with out-of-combat garbage collection
+----  Widgets get recycled by AceConfig/AceGUI
+]]-- 
+ 
+local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
+
+local function getGroupParent(optionsParent, groupDB)
+  local groupParent = groupPool[optionsParent][groupDB.parent].args
+  if not groupParent then
+    groupParent = groupPool[optionsParent]["root"].args
+    v.parent = nil
+  end
+  return groupParent
+end
+
+local function addGroups(parent, db)
+  local order = #parent + 1
+  groupPool[parent] = {}
+  groupPool[parent]["root"] = parent
   
-  tbl.newAura = {
+  -- Group creation execute widget
+  parent.newGroup = {
+    order = order,
+    name = "New Group",
+    type = "execute",
+    func = function(info)
+      if db["New Aura"] then
+        print(addonName..": New Group already exists")
+      else
+        db["New Group"] = {
+        }
+        ACD:SelectGroup(addonName, info[#info-1], "New Group")
+      end
+    end
+  }
+  
+  order = order + 1
+  
+  -- Group options creation
+  for groupName, groupDB in pairsByKeys(db) do
+    local groupOptions = {
+      order = order,
+      name = groupName,
+      type = "group",
+      args = {}
+    }
+    
+    parent[groupName] = groupOptions.args
+    groupPool[parent][groupName] = groupOptions
+    order = order + 1
+  end
+  
+  -- Group options nesting
+  for groupName, groupDB in pairsByKeys(db) do
+    getGroupParent(parent, groupDB)[groupName] = groupPool[parent][groupName]
+  end
+end
+
+local function addAuras(optionsTbl, db)  
+  local order = #optionsTbl + 1
+  
+  optionsTbl.newAura = {
     order = order,
     name = "New Aura",
     type = "execute",
@@ -79,21 +139,29 @@ local function addAuras(tbl, db)
   }
   
   order = order + 1
-    
-  for k, v in pairsByKeys(db) do
-    tbl[k] = {
+  
+  for auraName, auraDB in pairsByKeys(db) do
+    local groupParent = getGroupParent(optionsTbl, auraDB)
+    groupParent[auraName] = {
       order = order,
-      name = k,
+      name = auraName,
       type = "group",
-      icon = v.iconOverride and v.iconOverride ~= "" and "Interface\\Icons\\"..v.iconOverride or "Interface\\Icons\\ability_garrison_orangebird",
+      icon = auraDB.iconOverride and auraDB.iconOverride ~= "" and "Interface\\Icons\\"..auraDB.iconOverride or "Interface\\Icons\\ability_garrison_orangebird",
       get = function(info)
-        return db[info[#info-1]][info[#info]]
+        return auraDB[info[#info]]
       end,
       set = function(info, value)
-        db[info[#info-1]][info[#info]] = value
+        auraDB[info[#info]] = value
         Addon:Build()
       end,
       args = {
+        -- dev
+        parent = {
+          order = 0.01,
+          name = "Parent",
+          type = "input"
+        },
+        -- end-dev
         disable = {
           order = 0.1,
           name = "Disable",
@@ -112,12 +180,12 @@ local function addAuras(tbl, db)
             return db[value] and (addonName..": "..value.." already exists") or true
           end,
           get = function(info)
-            return k
+            return auraName
           end,
           set = function(info, value)
             db[info[#info-1]][info[#info]] = value
-            db[value] = v
-            db[k] = nil
+            db[value] = auraDB
+            db[auraName] = nil
             ACD:SelectGroup(addonName, info[#info-2], value)
             Addon:Build()
           end,
@@ -130,10 +198,10 @@ local function addAuras(tbl, db)
             local numberValue = tonumber(value)
             value = numberValue and numberValue or value
             db[info[#info-1]][info[#info]] = value
-            if not v.iconOverride or v.iconOverride == "" then
+            if not auraDB.iconOverride or auraDB.iconOverride == "" then
               local _, _, icon = GetSpellInfo(value)
               if icon then
-                v.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
+                auraDB.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
               end
             end
             Addon:Build()
@@ -157,7 +225,7 @@ local function addAuras(tbl, db)
           min = 1,
           softMax = 20,
           step = 1,
-          hidden = not v.multitarget
+          hidden = not auraDB.multitarget
         },
         auraType = {
           order = 2.4,
@@ -191,13 +259,13 @@ local function addAuras(tbl, db)
           min = 0,
           softMax = 10,
           step = 0.1,
-          hidden = not v.pandemic
+          hidden = not auraDB.pandemic
         },
         pandemicHasted = {
           order = 4.2,
           name = "Extra Pandemic Time is Hasted",
           type = "toggle",
-          hidden = not v.pandemic or v.pandemicExtra == 0
+          hidden = not auraDB.pandemic or auraDB.pandemicExtra == 0
         },
         headerVisuals = {
           order = 4.4,
@@ -256,7 +324,7 @@ local function addAuras(tbl, db)
             ["TOPLEFT"] = "TOPLEFT",
             ["TOPRIGHT"] = "TOPRIGHT"
           },
-          hidden = v.multitarget
+          hidden = auraDB.multitarget
         },
         posX = {
           order = 11,
@@ -265,7 +333,7 @@ local function addAuras(tbl, db)
           min = -math_ceil(GetScreenWidth()),
           max = math_ceil(GetScreenWidth()),
           step = 1,
-          hidden = v.multitarget
+          hidden = auraDB.multitarget
         },
         posY = {
           order = 12,
@@ -274,34 +342,34 @@ local function addAuras(tbl, db)
           min = -math_ceil(GetScreenHeight()),
           max = math_ceil(GetScreenHeight()),
           step = 1,
-          hidden = v.multitarget
+          hidden = auraDB.multitarget
         },
         arrangeInGrid = {
           order = 20,
           name = "Arrange Icons",
           type = "execute",
-          hidden = not v.multitarget,
+          hidden = not auraDB.multitarget,
           func = function()
             local i = 1
             local xOffset = 0
             local yOffset = 0
-            if v.arrangePriority == "Horizontal-Vertical" then
-              local columns = math_ceil(v.multitargetCount / v.arrangeRows)
-              for m = 1, v.arrangeRows do
+            if auraDB.arrangePriority == "Horizontal-Vertical" then
+              local columns = math_ceil(auraDB.multitargetCount / auraDB.arrangeRows)
+              for m = 1, auraDB.arrangeRows do
                 for n = 1, columns do
                   local numberString = tostring(i)
-                  v[numberString].anchor = v["1"].anchor
-                  v[numberString].posX = v["1"].posX + xOffset
-                  v[numberString].posY = v["1"].posY + yOffset
-                  xOffset = xOffset + v.arrangeXDistance
+                  auraDB[numberString].anchor = auraDB["1"].anchor
+                  auraDB[numberString].posX = auraDB["1"].posX + xOffset
+                  auraDB[numberString].posY = auraDB["1"].posY + yOffset
+                  xOffset = xOffset + auraDB.arrangeXDistance
                   i = i + 1
-                  if i > v.multitargetCount then
+                  if i > auraDB.multitargetCount then
                     Addon:Build()
                     return
                   end
                 end
                 xOffset = 0
-                yOffset = yOffset + v.arrangeYDistance
+                yOffset = yOffset + auraDB.arrangeYDistance
               end
             else
               
@@ -317,16 +385,16 @@ local function addAuras(tbl, db)
             ["Horizontal-Vertical"] = "Horizontal-Vertical",
             ["Vertical-Horizontal"] = "Vertical-Horizontal",
           },
-          hidden = not v.multitarget,
+          hidden = not auraDB.multitarget,
         },
         arrangeRows = {
           order = 22,
           name = "No. of Rows for Arranging",
           type = "range",
           min = 1,
-          max = v.multitargetCount,
+          max = auraDB.multitargetCount,
           step = 1,
-          hidden = not v.multitarget,
+          hidden = not auraDB.multitarget,
         },
         arrangeXDistance = {
           order = 23,
@@ -335,7 +403,7 @@ local function addAuras(tbl, db)
           softMin = -100,
           softMax = 100,
           step = 1,
-          hidden = not v.multitarget,
+          hidden = not auraDB.multitarget,
         },
         arrangeYDistance = {
           order = 24,
@@ -344,7 +412,7 @@ local function addAuras(tbl, db)
           softMin = -100,
           softMax = 100,
           step = 1,
-          hidden = not v.multitarget,
+          hidden = not auraDB.multitarget,
         },
         headerDelete = {
           order = 99,
@@ -356,33 +424,32 @@ local function addAuras(tbl, db)
           name = "Delete Aura",
           type = "execute",
           func = function()
-            db[k] = nil
+            db[auraName] = nil
             Addon:Build()
           end,
         },
       }
     }
     
-    if v.multitarget then      
-      for i = 1, v.multitargetCount do
-        local name = tostring(i)
+    if auraDB.multitarget then      
+      for i = 1, auraDB.multitargetCount do
+        local childName = tostring(i)
         
-        v[name] = v[name] or {}
-        v[name].name = v.name.."\n"..name
-        v[name].unitID = v.unitID..name
-        setmetatable(v[name], {__index = v})  -- Might be hacky and corrupt the database
+        auraDB[childName] = auraDB[childName] or {}
+        local childDB = auraDB[childName]
+        childDB.name = auraDB.name.."\n"..auraDB.unitID..name
+        childDB.unitID = auraDB.unitID..name
+        setmetatable(childDB, {__index = auraDB})  -- Might be hacky and corrupt the database
         
-        tbl[k].args[name] = {
+        groupParent[auraName].args[childName] = {
           order = i,
-          name = name,
+          name = childName,
           type = "group",
           get = function(info)
-            return db[info[#info-2]][info[#info-1]][info[#info]]
+            return childDB[info[#info]]
           end,
           set = function(info, value)
-            local dbParent = db[info[#info-2]]
-            local dbChild = dbParent[info[#info-1]] or {}
-            dbChild[info[#info]] = value
+            childDB[info[#info]] = value
             Addon:Build()
           end,
           args = {
@@ -456,7 +523,12 @@ local function options()
     }
   }
   
+  wipe(groupPool)
+  -- Class options
+  addGroups(tbl.args.class.args, Addon.db.class.groups)
   addAuras(tbl.args.class.args, Addon.db.class.auras)
+  -- Global options
+  addGroups(tbl.args.class.args, Addon.db.global.groups)
   addAuras(tbl.args.global.args, Addon.db.global.auras)
   
   return tbl
@@ -501,10 +573,14 @@ Addon:RegisterChatCommand(addonName, "HandleChatCommand")
 --------------------
 local defaultSettings = {
   global = {
-    auras = {}
+    auras = {},
+    groups = {
+    }
   },
   class = {
-    auras = {}
+    auras = {},
+    groups = {
+    }
   }
 }
 
