@@ -45,11 +45,12 @@ end
 ]]-- 
  
 local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
+local renamedGroup = {}
 
 local function getGroupParent(optionsParent, groupDB)
   local groupParent
   if groupDB.parent then
-    groupParent = groupPool[optionsParent][groupDB.parent].args
+    groupParent = groupPool[optionsParent][groupDB.parent] and groupPool[optionsParent][groupDB.parent].args
   end
   if not groupParent then
     groupParent = groupPool[optionsParent]["root"]
@@ -62,6 +63,7 @@ local function addGroups(parent, db)
   local order = #parent + 1
   groupPool[parent] = {}
   groupPool[parent]["root"] = parent
+  renamedGroup[parent] = renamedGroup[parent] or {}
   
   -- Group creation execute widget
   parent.newGroup = {
@@ -87,7 +89,36 @@ local function addGroups(parent, db)
       order = order,
       name = groupName,
       type = "group",
-      args = {}
+      args = {
+        name = {
+          order = 1,
+          name = "Name",
+          type = "input",
+          validate = function(info, value)
+            return db[value] and (addonName..": "..value.." already exists") or true
+          end,
+          get = function(info)
+            return groupName
+          end,
+          set = function(info, value)
+            renamedGroup[parent] = {old = groupName, new = value}
+            groupDB.name = value
+            db[value] = groupDB
+            db[groupName] = nil
+            ACD:SelectGroup(addonName, value)
+            Addon:Build()
+          end,
+        },
+        deleteAura = {
+          order = 100,
+          name = "Delete Group",
+          type = "execute",
+          func = function()
+            db[groupName] = nil
+            Addon:Build()
+          end,
+        },
+      }
     }
     
     parent[groupName] = groupOptions.args
@@ -144,6 +175,12 @@ local function addAuras(optionsTbl, db)
   order = order + 1
   
   for auraName, auraDB in pairsByKeys(db) do
+    -- Check if parent group name has changed
+    if renamedGroup[optionsTbl].old == auraDB.parent then
+      auraDB.parent = renamedGroup[optionsTbl].new
+    end
+    
+    -- Get parent group according to db and add aura to it
     local groupParent = getGroupParent(optionsTbl, auraDB)
     groupParent[auraName] = {
       order = order,
@@ -434,6 +471,7 @@ local function addAuras(optionsTbl, db)
       }
     }
     
+    -- Add multi unit auras if applicable
     if auraDB.multitarget then      
       for i = 1, auraDB.multitargetCount do
         local childName = tostring(i)
@@ -501,40 +539,46 @@ local function addAuras(optionsTbl, db)
     
     order = order + 1
   end
+    
+  -- Nil name check for renamed groups since we iterated over all auras
+  renamedGroup[optionsTbl] = nil
 end
 
-local function options()
-  local tbl = {
-    type = "group",
-		name = addonName,
-		childGroups = "tab",
-		args = {
-      class = {
-        order = 10,
-        type = "group",
-        name = "Class Auras",
-        childGroups = "tree",
-        args = {}
-      },
-      global = {
-        order = 11,
-        type = "group",
-        name = "Global Auras",
-        childGroups = "tree",
-        args = {}
-      },
-    }
+local optionsBaseTbl = {
+  type = "group",
+  name = addonName,
+  childGroups = "tab",
+  args = {
+    class = {
+      order = 10,
+      type = "group",
+      name = "Class Auras",
+      childGroups = "tree",
+      args = {}
+    },
+    global = {
+      order = 11,
+      type = "group",
+      name = "Global Auras",
+      childGroups = "tree",
+      args = {}
+    },
   }
-  
+}
+
+local function options()
+  wipe(optionsBaseTbl.args.class.args)
+  wipe(optionsBaseTbl.args.global.args)
   wipe(groupPool)
-  -- Class options
-  addGroups(tbl.args.class.args, Addon.db.class.groups)
-  addAuras(tbl.args.class.args, Addon.db.class.auras)
-  -- Global options
-  addGroups(tbl.args.global.args, Addon.db.global.groups)
-  addAuras(tbl.args.global.args, Addon.db.global.auras)
   
-  return tbl
+  -- Class options
+  addGroups(optionsBaseTbl.args.class.args, Addon.db.class.groups)
+  addAuras(optionsBaseTbl.args.class.args, Addon.db.class.auras)
+  -- Global options
+  addGroups(optionsBaseTbl.args.global.args, Addon.db.global.groups)
+  addAuras(optionsBaseTbl.args.global.args, Addon.db.global.auras)
+  
+  return optionsBaseTbl
 end
 
 LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName)
