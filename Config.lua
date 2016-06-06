@@ -47,10 +47,13 @@ end
 local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
 
 local function getGroupParent(optionsParent, groupDB)
-  local groupParent = groupPool[optionsParent][groupDB.parent].args
+  local groupParent
+  if groupDB.parent then
+    groupParent = groupPool[optionsParent][groupDB.parent].args
+  end
   if not groupParent then
-    groupParent = groupPool[optionsParent]["root"].args
-    v.parent = nil
+    groupParent = groupPool[optionsParent]["root"]
+    groupDB.parent = nil
   end
   return groupParent
 end
@@ -437,8 +440,8 @@ local function addAuras(optionsTbl, db)
         
         auraDB[childName] = auraDB[childName] or {}
         local childDB = auraDB[childName]
-        childDB.name = auraDB.name.."\n"..auraDB.unitID..name
-        childDB.unitID = auraDB.unitID..name
+        childDB.name = auraDB.name.."\n"..auraDB.unitID..childName
+        childDB.unitID = auraDB.unitID..childName
         setmetatable(childDB, {__index = auraDB})  -- Might be hacky and corrupt the database
         
         groupParent[auraName].args[childName] = {
@@ -528,7 +531,7 @@ local function options()
   addGroups(tbl.args.class.args, Addon.db.class.groups)
   addAuras(tbl.args.class.args, Addon.db.class.auras)
   -- Global options
-  addGroups(tbl.args.class.args, Addon.db.global.groups)
+  addGroups(tbl.args.global.args, Addon.db.global.groups)
   addAuras(tbl.args.global.args, Addon.db.global.auras)
   
   return tbl
