@@ -112,6 +112,27 @@ local function getGroupParent(optionsParent, groupDB)
   return groupParent
 end
 
+local function buildParentGroupOption(db, order)
+  local groupDB
+  if (db == Addon.db.class.auras) or (db == Addon.db.class.groups) then
+    groupDB = Addon.db.class.groups
+  else  -- (db == Addon.db.global.auras) or (db == Addon.db.global.groups)
+    groupDB = Addon.db.global.groups
+  end
+  
+  local tbl = {
+    order = order,
+    name = "Parent Group",
+    type = "select",
+    values = {}
+  }
+  for k, v in pairs(groupDB) do
+    tbl.values[k] = k
+  end
+  
+  return tbl
+end
+
 local function addGroups(parent, db)
   local order = #parent + 1
   groupPool[parent] = {}
@@ -143,19 +164,7 @@ local function addGroups(parent, db)
       name = groupName,
       type = "group",
       args = {
-        -- dev
-        parent = {
-          order = 1.1,
-          name = "Parent",
-          type = "input",
-          get = function(info)
-            return groupDB.parent
-          end,
-          set = function(info, value)
-            groupDB.parent = value
-          end,
-        },
-        -- end-dev
+        parent = buildParentGroupOption(db, 1.1),
         name = {
           order = 1,
           name = "Name",
@@ -261,13 +270,7 @@ local function addAuras(optionsTbl, db)
         Addon:Build()
       end,
       args = {
-        -- dev
-        parent = {
-          order = 0.11,
-          name = "Parent",
-          type = "input"
-        },
-        -- end-dev
+        parent = buildParentGroupOption(db, 0.11),
         disable = {
           order = 0.1,
           name = "Disable",
