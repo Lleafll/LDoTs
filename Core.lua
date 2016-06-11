@@ -33,7 +33,7 @@ local function onEnterHandler(self)
   self.nameString:Show()
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
   GameTooltip:AddLine(addonName, 0.51, 0.31, 0.67, 1, 1, 1)
-  GameTooltip:AddLine(self.db.name, 1, 1, 1, 1, 1, 1)
+  GameTooltip:AddLine("|cFFcc0060Left mouse button|r to drag.\n|cFFcc0060Mouse wheel|r and |cFFcc0060shift + mouse wheel|r for fine adjustment.", 1, 1, 1, 1, 1, 1)
   GameTooltip:Show()
 end
 
@@ -228,10 +228,6 @@ local function auraEventHandler(self, event, ...)
         local tbl = getmetatable(db)  -- Get parent if multitarget frame
         tbl = tbl and tbl.__index or db
         tbl.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
-        
-        -- Debug
-        print("Set icon to ", tbl.iconOverride)
-        
         self.icon = true
       end
       
