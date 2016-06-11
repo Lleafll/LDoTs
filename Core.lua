@@ -226,8 +226,12 @@ local function auraEventHandler(self, event, ...)
       if not self.icon then
         self.texture:SetTexture(icon)
         local tbl = getmetatable(db)  -- Get parent if multitarget frame
-        tbl = tbl or db
+        tbl = tbl and tbl.__index or db
         tbl.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
+        
+        -- Debug
+        print("Set icon to ", tbl.iconOverride)
+        
         self.icon = true
       end
       
