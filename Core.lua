@@ -30,6 +30,7 @@ local auraFrameCache = {}
 -- Aura Frame Dragging --
 -------------------------
 local function onEnterHandler(self)
+  self.nameString:Show()
   GameTooltip:SetOwner(self, "ANCHOR_TOP")
   GameTooltip:AddLine(addonName, 0.51, 0.31, 0.67, 1, 1, 1)
   GameTooltip:AddLine(self.db.name, 1, 1, 1, 1, 1, 1)
@@ -37,6 +38,7 @@ local function onEnterHandler(self)
 end
 
 local function onLeaveHandler(self)
+  self.nameString:Hide()
   GameTooltip:Hide()
 end
 
@@ -75,7 +77,6 @@ local function frameUnlock(self)  -- TODO: Events should be supressed
   self:SetScript("OnMouseWheel", onMouseWheelHandler)
   self.pandemicBorder:Hide()  
   self.nameString:SetText(self.db.name)
-  self.nameString:Show()
 end
 
 local function frameLock(self)
