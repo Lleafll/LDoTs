@@ -289,10 +289,14 @@ local function initializeFrame(frame, db)
   frame.db = db
   
   frame:Hide()
+  local width = db.width
+  local height = db.height
+  local posX = db.posX + (width % 2 > 0 and 0.5 or 0)
+  local posY = db.posY + (height % 2 > 0 and 0.5 or 0)
   local UIScale = UIParent:GetScale()
-  frame:SetSize(db.width * UIScale, db.height * UIScale)
+  frame:SetSize(width * UIScale, height * UIScale)
   frame:ClearAllPoints()
-  frame:SetPoint(db.anchor, db.posX * UIScale, db.posY * UIScale)
+  frame:SetPoint(db.anchor, posX * UIScale, posY * UIScale)
   
   local _, icon
   if db.iconOverride and db.iconOverride ~= "" then
