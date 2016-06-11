@@ -132,11 +132,10 @@ local function addGroups(profileOptions, profileDB)
     name = "New Group",
     type = "execute",
     func = function(info)
-      if profileDB["New Group"] then
+      if db["New Group"] then
         print(addonName..": New Group already exists")
       else
-        profileDB["New Group"] = {
-        }
+        db["New Group"] = {}
         ACD:SelectGroup(addonName, info[#info-1], "New Group")
       end
     end
