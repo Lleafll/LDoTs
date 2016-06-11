@@ -116,7 +116,8 @@ local pandemicBackdrop = {
   bgFile = nil,
   edgeFile = LSM:Fetch('background', "Solid"),
   tile = false,
-  edgeSize = 2,
+  edgeSize = 1,
+  padding = 1
 }
 
 local function createAuraFrame()
@@ -138,7 +139,8 @@ local function createAuraFrame()
   frame.stacks:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
   
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
-  frame.cooldown:SetAllPoints()
+  frame.cooldown:SetPoint("TOPLEFT", 1, -1)
+  frame.cooldown:SetPoint("BOTTOMRIGHT", -1, 1)
   frame.cooldown:SetDrawEdge(false)
   --frame.cooldown:SetReverse(true)
   
