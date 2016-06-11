@@ -50,6 +50,7 @@ local function onMouseDownHandler(self, button)
     local tbl = getmetatable(db)  -- Get parent if multitarget frame
     tbl = tbl and tbl.__index or db
     tbl.hide = true
+    Addon:Options()
   end
 end
 
