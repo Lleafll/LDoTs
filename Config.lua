@@ -42,12 +42,18 @@ end
 ----------------------
 local defaultSettings = {
   global = {
-    auras = {},
-    groups = {}
+    profile = "global",
+    auras = {
+    },
+    groups = {
+    }
   },
   class = {
-    auras = {},
-    groups = {}
+    profile = "class",
+    auras = {
+    },
+    groups = {
+    }
   }
 }
 
@@ -77,35 +83,21 @@ local function getGroupParent(optionsParent, groupDB)
   return groupParent
 end
 
-local function selectFromTree(parentDB, db)
+local function selectFromTree(parentDB, profileDB, db)
   local path = {db.name}
-  if parentDB == Addon.db.class.groups or parentDB == Addon.db.class.auras then
-    groupDB = Addon.db.class.groups
-  elseif parentDB == Addon.db.global.groups or parentDB == Addon.db.global.auras then
-    groupDB = Addon.db.global.groups
-  end
+  local groupDB = Addon.db[profileDB.profile].groups
   
   while db and db.parent do
     table_insert(path, 1, db.parent)
     db = groupDB[db.parent]
   end
   
-  if parentDB == Addon.db.class.groups or parentDB == Addon.db.class.auras then
-    path[1] = "class"
-  elseif parentDB == Addon.db.global.groups or parentDB == Addon.db.global.auras then
-    path[1] = "global"
-  end
-
+  path[1] = profileDB.profile
   ACD:SelectGroup(addonName, unpack(path))
 end
 
-local function buildParentGroupOption(profileOptions, parentDB, childDB, order)
-  local groupDB
-  if (parentDB == Addon.db.class.auras) or (parentDB == Addon.db.class.groups) then
-    groupDB = Addon.db.class.groups
-  else  -- (db == Addon.db.global.auras) or (db == Addon.db.global.groups)
-    groupDB = Addon.db.global.groups
-  end
+local function buildParentGroupOption(profileDB, parentDB, childDB, order)
+  local groupDB = Addon.db[profileDB.profile].groups
   
   local tbl = {
     order = order,
@@ -115,7 +107,7 @@ local function buildParentGroupOption(profileOptions, parentDB, childDB, order)
     set = function(info, value)
       childDB[info[#info]] = value
       Addon:Build()
-      selectFromTree(parentDB, childDB)
+      selectFromTree(parentDB, profileDB, childDB)
     end,
   }
   for k, v in pairs(groupDB) do
@@ -127,7 +119,8 @@ local function buildParentGroupOption(profileOptions, parentDB, childDB, order)
   return tbl
 end
 
-local function addGroups(profileOptions, db)
+local function addGroups(profileOptions, profileDB)
+  local db = profileDB.groups
   local order = #profileOptions + 1
   groupPool[profileOptions] = {}
   groupPool[profileOptions]["Root"] = profileOptions
@@ -139,10 +132,10 @@ local function addGroups(profileOptions, db)
     name = "New Group",
     type = "execute",
     func = function(info)
-      if db["New Aura"] then
+      if profileDB["New Group"] then
         print(addonName..": New Group already exists")
       else
-        db["New Group"] = {
+        profileDB["New Group"] = {
         }
         ACD:SelectGroup(addonName, info[#info-1], "New Group")
       end
@@ -170,7 +163,7 @@ local function addGroups(profileOptions, db)
         Addon:Build()
       end,
       args = {
-        parent = buildParentGroupOption(profileOptions, db, groupDB, 1.1),
+        parent = buildParentGroupOption(profileDB, db, groupDB, 1.1),
         name = {
           order = 1,
           name = "Name",
@@ -186,7 +179,7 @@ local function addGroups(profileOptions, db)
             groupDB.name = value
             db[value] = groupDB
             db[groupName] = nil
-            selectFromTree(db, groupDB)
+            selectFromTree(db, profileDB, groupDB)
             Addon:Build()
           end,
         },
@@ -215,7 +208,8 @@ local function addGroups(profileOptions, db)
   end
 end
 
-local function addAuras(profileOptions, db)  
+local function addAuras(profileOptions, profileDB)
+  local db = profileDB.auras
   local order = #profileOptions + 1
   
   profileOptions.newAura = {
@@ -284,7 +278,7 @@ local function addAuras(profileOptions, db)
           name = "Hide",
           type = "toggle"
         },
-        parent = buildParentGroupOption(profileOptions, db, auraDB, 0.12),
+        parent = buildParentGroupOption(profileDB, db, auraDB, 0.12),
         disable = {
           order = 0.13,
           name = "Disable",
@@ -309,7 +303,7 @@ local function addAuras(profileOptions, db)
             auraDB.name = value
             db[value] = auraDB
             db[auraName] = nil
-            selectFromTree(db, auraDB)
+            selectFromTree(db, profileDB, auraDB)
             Addon:Build()
           end,
         },
@@ -657,11 +651,11 @@ local function options()
   wipe(groupPool)
   
   -- Class options
-  addGroups(optionsBaseTbl.args.class.args, Addon.db.class.groups)
-  addAuras(optionsBaseTbl.args.class.args, Addon.db.class.auras)
+  addGroups(optionsBaseTbl.args.class.args, Addon.db.class)
+  addAuras(optionsBaseTbl.args.class.args, Addon.db.class)
   -- Global options
-  addGroups(optionsBaseTbl.args.global.args, Addon.db.global.groups)
-  addAuras(optionsBaseTbl.args.global.args, Addon.db.global.auras)
+  addGroups(optionsBaseTbl.args.global.args, Addon.db.global)
+  addAuras(optionsBaseTbl.args.global.args, Addon.db.global)
   
   return optionsBaseTbl
 end
