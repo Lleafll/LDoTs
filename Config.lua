@@ -15,6 +15,7 @@ local ADB = LibStub("AceDB-3.0")
 local math_ceil = math.ceil
 local pairs = pairs
 local string_match = string.match
+local table_insert = table.insert
 local table_sort = table.sort
 
 
@@ -50,42 +51,6 @@ local defaultSettings = {
   }
 }
 
---[[local defaultSettingsAura = {
-  spell = "",
-  unitID = "target",
-  --multitarget = false,
-  multitargetCount = 1,
-  auraType = "Debuff",
-  ownOnly = true,
-  --showStacks = false,
-  pandemic = true,
-  pandemicExtra = 0,
-  pandemicHasted = true,
-  --hideSwirl = false,
-  iconOverride = "",
-  height = 32,
-  width = 32,
-  arrangePriority = "Horizontal-Vertical",
-  arrangeRows = 1,
-  arrangeXDistance = 33,
-  arrangeYDistance = 33,
-  anchor = "CENTER",
-  posX = 0,
-  posY = 0,
-}
-aurasMt = {__index = function(k, t)
-  return defaultSettingsAura
-end}
-setmetatable(defaultSettings.class.auras, aurasMt)
-setmetatable(defaultSettings.global.auras, aurasMt)
-
-local defaultSettingsGroup = {
-}
-groupsMt = {__index = function(k, t)
-  return defaultSettingsGroup
-end}
-setmetatable(defaultSettings.class.groups, groupsMt)
-setmetatable(defaultSettings.global.groups, groupsMt)]]--
 
 
 -------------
@@ -106,15 +71,37 @@ local function getGroupParent(optionsParent, groupDB)
     groupParent = groupPool[optionsParent][groupDB.parent] and groupPool[optionsParent][groupDB.parent].args
   end
   if not groupParent then
-    groupParent = groupPool[optionsParent]["root"]
-    groupDB.parent = nil
+    groupParent = groupPool[optionsParent]["Root"]
+    groupDB.parent = "Root"
   end
   return groupParent
 end
 
-local function buildParentGroupOption(db, order)
+local function selectFromTree(parentDB, db)
+  local path = {db.name}
+  if parentDB == Addon.db.class.groups or parentDB == Addon.db.class.auras then
+    groupDB = Addon.db.class.groups
+  elseif parentDB == Addon.db.global.groups or parentDB == Addon.db.global.auras then
+    groupDB = Addon.db.global.groups
+  end
+  
+  while db and db.parent do
+    table_insert(path, 1, db.parent)
+    db = groupDB[db.parent]
+  end
+  
+  if parentDB == Addon.db.class.groups or parentDB == Addon.db.class.auras then
+    path[1] = "class"
+  elseif parentDB == Addon.db.global.groups or parentDB == Addon.db.global.auras then
+    path[1] = "global"
+  end
+
+  ACD:SelectGroup(addonName, unpack(path))
+end
+
+local function buildParentGroupOption(profileOptions, parentDB, childDB, order)
   local groupDB
-  if (db == Addon.db.class.auras) or (db == Addon.db.class.groups) then
+  if (parentDB == Addon.db.class.auras) or (parentDB == Addon.db.class.groups) then
     groupDB = Addon.db.class.groups
   else  -- (db == Addon.db.global.auras) or (db == Addon.db.global.groups)
     groupDB = Addon.db.global.groups
@@ -124,23 +111,30 @@ local function buildParentGroupOption(db, order)
     order = order,
     name = "Parent Group",
     type = "select",
-    values = {}
+    values = {Root = "Root"},
+    set = function(info, value)
+      childDB[info[#info]] = value
+      Addon:Build()
+      selectFromTree(parentDB, childDB)
+    end,
   }
   for k, v in pairs(groupDB) do
-    tbl.values[k] = k
+    if v ~= childDB then  -- don't include itself
+      tbl.values[k] = k
+    end
   end
   
   return tbl
 end
 
-local function addGroups(parent, db)
-  local order = #parent + 1
-  groupPool[parent] = {}
-  groupPool[parent]["root"] = parent
-  renamedGroup[parent] = renamedGroup[parent] or {}
+local function addGroups(profileOptions, db)
+  local order = #profileOptions + 1
+  groupPool[profileOptions] = {}
+  groupPool[profileOptions]["Root"] = profileOptions
+  renamedGroup[profileOptions] = renamedGroup[profileOptions] or {}
   
   -- Group creation execute widget
-  parent.newGroup = {
+  profileOptions.newGroup = {
     order = order,
     name = "New Group",
     type = "execute",
@@ -159,35 +153,49 @@ local function addGroups(parent, db)
   
   -- Group options creation
   for groupName, groupDB in pairsByKeys(db) do
+    -- Check if parent group name has changed
+    if renamedGroup[profileOptions].old == groupDB.parent then
+      groupDB.parent = renamedGroup[profileOptions].new
+    end
+    
     local groupOptions = {
       order = order,
       name = groupName,
       type = "group",
+      get = function(info)
+        return groupDB[info[#info]]
+      end,
+      set = function(info, value)
+        groupDB[info[#info]] = value
+        Addon:Build()
+      end,
       args = {
-        parent = buildParentGroupOption(db, 1.1),
+        parent = buildParentGroupOption(profileOptions, db, groupDB, 1.1),
         name = {
           order = 1,
           name = "Name",
           type = "input",
           validate = function(info, value)
-            return db[value] and (addonName..": "..value.." already exists") or true
+            return (db[value] or value == "Root") and (addonName..": "..value.." already exists") or true
           end,
           get = function(info)
             return groupName
           end,
           set = function(info, value)
-            renamedGroup[parent] = {old = groupName, new = value}
+            renamedGroup[profileOptions] = {old = groupName, new = value}
             groupDB.name = value
             db[value] = groupDB
             db[groupName] = nil
-            ACD:SelectGroup(addonName, value)
+            selectFromTree(db, groupDB)
             Addon:Build()
           end,
         },
-        deleteAura = {
+        deleteGroup = {
           order = 100,
           name = "Delete Group",
           type = "execute",
+          confirm = true,
+          confirmText = "Delete "..groupName.."?",
           func = function()
             db[groupName] = nil
             Addon:Build()
@@ -196,21 +204,21 @@ local function addGroups(parent, db)
       }
     }
     
-    parent[groupName] = groupOptions.args
-    groupPool[parent][groupName] = groupOptions
+    profileOptions[groupName] = groupOptions.args
+    groupPool[profileOptions][groupName] = groupOptions
     order = order + 1
   end
   
   -- Group options nesting
   for groupName, groupDB in pairsByKeys(db) do
-    getGroupParent(parent, groupDB)[groupName] = groupPool[parent][groupName]
+    getGroupParent(profileOptions, groupDB)[groupName] = groupPool[profileOptions][groupName]
   end
 end
 
-local function addAuras(optionsTbl, db)  
-  local order = #optionsTbl + 1
+local function addAuras(profileOptions, db)  
+  local order = #profileOptions + 1
   
-  optionsTbl.newAura = {
+  profileOptions.newAura = {
     order = order,
     name = "New Aura",
     type = "execute",
@@ -219,6 +227,7 @@ local function addAuras(optionsTbl, db)
         print(addonName..": New Aura already exists")
       else
         db["New Aura"] = {
+          parent = "Root",
           name = "New Aura",
           spell = "",
           unitID = "target",
@@ -251,12 +260,12 @@ local function addAuras(optionsTbl, db)
   
   for auraName, auraDB in pairsByKeys(db) do
     -- Check if parent group name has changed
-    if renamedGroup[optionsTbl].old == auraDB.parent then
-      auraDB.parent = renamedGroup[optionsTbl].new
+    if renamedGroup[profileOptions].old == auraDB.parent then
+      auraDB.parent = renamedGroup[profileOptions].new
     end
     
     -- Get parent group according to db and add aura to it
-    local groupParent = getGroupParent(optionsTbl, auraDB)
+    local groupParent = getGroupParent(profileOptions, auraDB)
     groupParent[auraName] = {
       order = order,
       name = auraName,
@@ -275,7 +284,7 @@ local function addAuras(optionsTbl, db)
           name = "Hide",
           type = "toggle"
         },
-        parent = buildParentGroupOption(db, 0.12),
+        parent = buildParentGroupOption(profileOptions, db, auraDB, 0.12),
         disable = {
           order = 0.13,
           name = "Disable",
@@ -300,7 +309,7 @@ local function addAuras(optionsTbl, db)
             auraDB.name = value
             db[value] = auraDB
             db[auraName] = nil
-            ACD:SelectGroup(addonName, info[#info-2], value)
+            selectFromTree(db, auraDB)
             Addon:Build()
           end,
         },
@@ -537,6 +546,8 @@ local function addAuras(optionsTbl, db)
           order = 100,
           name = "Delete Aura",
           type = "execute",
+          confirm = true,
+          confirmText = "Delete "..auraName.."?",
           func = function()
             db[auraName] = nil
             Addon:Build()
@@ -615,7 +626,7 @@ local function addAuras(optionsTbl, db)
   end
     
   -- Nil name check for renamed groups since we iterated over all auras
-  renamedGroup[optionsTbl] = nil
+  renamedGroup[profileOptions] = nil
 end
 
 local optionsBaseTbl = {
