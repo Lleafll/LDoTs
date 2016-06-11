@@ -45,17 +45,24 @@ end
 local function onMouseDownHandler(self, button)
   if button == "LeftButton" then
     self:StartMoving()
+  elseif button == "RightButton" then
+    local db = self.db
+    local tbl = getmetatable(db)  -- Get parent if multitarget frame
+    tbl = tbl and tbl.__index or db
+    tbl.hide = true
   end
 end
 
 local function onMouseUpHandler(self, button)
-  self:StopMovingOrSizing()
-  local _, _, anchor, posX, posY = self:GetPoint()
-  self.db.anchor = anchor
-  local UIScale = UIParent:GetScale()
-  self.db.posX = math_ceil(posX / UIScale - 0.5)
-  self.db.posY = math_ceil(posY / UIScale - 0.5)
-  Addon:Options()
+  if button == "LeftButton" then
+    self:StopMovingOrSizing()
+    local _, _, anchor, posX, posY = self:GetPoint()
+    self.db.anchor = anchor
+    local UIScale = UIParent:GetScale()
+    self.db.posX = math_ceil(posX / UIScale - 0.5)
+    self.db.posY = math_ceil(posY / UIScale - 0.5)
+    Addon:Options()
+  end
 end
 
 local function onMouseWheelHandler(self, delta)
@@ -67,18 +74,6 @@ local function onMouseWheelHandler(self, delta)
   Addon:Options()
 end
 
-local function frameUnlock(self)  -- TODO: Events should be supressed
-  self:Show()
-  self:SetMovable(true)
-  self:SetScript("OnEnter", onEnterHandler)
-  self:SetScript("OnLeave", onLeaveHandler)
-  self:SetScript("OnMouseDown", onMouseDownHandler)
-  self:SetScript("OnMouseUp", onMouseUpHandler)
-  self:SetScript("OnMouseWheel", onMouseWheelHandler)
-  self.pandemicBorder:Hide()  
-  self.nameString:SetText(self.db.name)
-end
-
 local function frameLock(self)
   self:SetMovable(false)  -- Necessary? 
   self:EnableMouse(false)  -- Necessary? 
@@ -88,6 +83,22 @@ local function frameLock(self)
   self:SetScript("OnMouseUp", nil)
   self:SetScript("OnMouseWheel", nil)
   self.nameString:Hide()
+end
+
+local function frameUnlock(self)  -- TODO: Events should be supressed
+  self:Show()
+  if self.db.hide then
+    frameLock(self)
+  else
+    self:SetMovable(true)
+    self:SetScript("OnEnter", onEnterHandler)
+    self:SetScript("OnLeave", onLeaveHandler)
+    self:SetScript("OnMouseDown", onMouseDownHandler)
+    self:SetScript("OnMouseUp", onMouseUpHandler)
+    self:SetScript("OnMouseWheel", onMouseWheelHandler)
+    self.pandemicBorder:Hide()  
+    self.nameString:SetText(self.db.name)
+  end
 end
 
 
@@ -309,6 +320,7 @@ local function initializeFrame(frame, db)
     icon = "Interface\\Icons\\ability_garrison_orangebird"
   end
   frame.texture:SetTexture(icon)
+  frame.texture:Show()
   
   if db.showStacks then
     frame.stacks:Show()
@@ -321,6 +333,9 @@ local function initializeFrame(frame, db)
   if Addon.unlocked then
     frame:Unlock()
     frame:SetScript("OnEvent", nil)
+    if db.hide then
+      frame.texture:Hide()
+    end
   else
     frame:Lock()
     

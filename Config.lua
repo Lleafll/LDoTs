@@ -270,9 +270,14 @@ local function addAuras(optionsTbl, db)
         Addon:Build()
       end,
       args = {
-        parent = buildParentGroupOption(db, 0.11),
+        hide = {
+          order = 0.11,
+          name = "Hide",
+          type = "toggle"
+        },
+        parent = buildParentGroupOption(db, 0.12),
         disable = {
-          order = 0.1,
+          order = 0.13,
           name = "Disable",
           type = "toggle"
         },
