@@ -2,15 +2,19 @@ local addonName, addonTable = ...
 local Addon = LibStub("AceAddon-3.0"):GetAddon(addonName)
 
 
+
 ---------------
 -- Libraries --
 ---------------
 local LSM = LibStub('LibSharedMedia-3.0')
 
 
+
 --------------
 -- Upvalues --
 --------------
+local GetSpellCharges = GetSpellCharges
+local GetSpellCooldown = GetSpellCooldown
 local GetTime = GetTime
 local math_ceil = math.ceil
 local string_match = string.match
@@ -19,11 +23,13 @@ local tostring = tostring
 local UnitAura = UnitAura
 
 
+
 ---------------
 -- Variables --
 ---------------
 local auraFrames = {}
 local auraFrameCache = {}
+
 
 
 -------------------------
@@ -103,6 +109,7 @@ local function frameUnlock(self)  -- TODO: Events should be supressed
 end
 
 
+
 -------------------------------
 -- Frame Factory and Caching --
 -------------------------------
@@ -135,15 +142,19 @@ local function createAuraFrame()
   local frameLevel = frame:GetFrameLevel()
   frame.backdrop:SetFrameLevel(frameLevel > 0 and (frameLevel - 1) or 0)
   
-  frame.stacks = frame:CreateFontString()
-  frame.stacks:SetPoint("BOTTOMRIGHT")
-  frame.stacks:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+  frame.stacksString = frame:CreateFontString()
+  frame.stacksString:SetPoint("BOTTOMRIGHT")
+  frame.stacksString:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
   
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetPoint("TOPLEFT", 1, -1)
   frame.cooldown:SetPoint("BOTTOMRIGHT", -1, 1)
   frame.cooldown:SetDrawEdge(false)
-  --frame.cooldown:SetReverse(true)
+  
+  frame.chargeCooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
+  frame.chargeCooldown:SetPoint("TOPLEFT", 1, -1)
+  frame.chargeCooldown:SetPoint("BOTTOMRIGHT", -1, 1)
+  frame.chargeCooldown:SetDrawSwipe(false)
   
   frame.pandemicBorder = CreateFrame("Frame", nil, frame)
   frame.pandemicBorder:SetAllPoints()
@@ -190,6 +201,7 @@ local function wipeAuraFrames()
     auraFrames[k] = nil
   end
 end
+
 
 
 -------------------
@@ -259,7 +271,7 @@ local function auraEventHandler(self, event, ...)
     end
     
     if db.showStacks then
-      self.stacks:SetText(count)
+      self.stacksString:SetText(count)
     end
     
   else
@@ -299,6 +311,66 @@ do
   end)
 end
 
+
+
+-----------------------
+-- Cooldown Behavior --
+-----------------------
+local function cooldownEventHandler(self, event, ...)
+  local db = self.db
+  
+  local start, duration, enable = GetSpellCooldown(db.spell)
+  local gcdStart, gcdDuration = GetSpellCooldown(61304)
+  local stacks, maxStacks, stacksStart, stacksDuration = GetSpellCharges(db.spell)
+  
+  if start or gcdStart or (stacks and stacks < maxStacks) then
+    self:Show()
+    
+    if stacks and stacks > 0 and stacks < maxStacks and (stacksStart ~= self.stacksStart or stacksDuration ~= self.stacksDuration) then
+      self.chargeCooldown:SetCooldown(stacksStart, stacksDuration)
+      self.stacksStart = stacksStart
+      self.stacksDuration = stacksDuration
+    end
+    
+    if not start or (gcdStart and start + duration < gcdStart + gcdDuration) then
+      start = gcdStart
+      duration = gcdDuration
+    end
+    if start ~= self.start or duration ~= self.duration then
+      self.cooldown:SetCooldown(start, duration)
+      self.start = start
+      self.duration = duration
+    end
+    
+  else
+    if not self.showOffCooldown then
+      self:Hide()
+    end
+    
+  end
+  
+  if self:IsShown() then
+    local usable = IsUsableSpell(db.spell)
+    if db.checkUsability and usable ~= self.usable then
+      if usable then
+        self.texture:SetVertexColor(1, 1, 1)
+      else
+        self.texture:SetVertexColor(0.25, 0.25, 0.25)
+      end
+      self.usable = usable
+    end
+    if db.showStacks and stacks ~= self.stacks then
+      self.stacksString:SetText(stacks)
+      self.stacks = stacks
+    end
+  end
+end
+
+
+
+-----------
+-- Icons --
+-----------
 local function initializeFrame(frame, db)
   frame.db = db
   
@@ -323,15 +395,19 @@ local function initializeFrame(frame, db)
     icon = "Interface\\Icons\\ability_garrison_orangebird"
   end
   frame.texture:SetTexture(icon)
+  frame.texture:SetVertexColor(1, 1, 1)
   frame.texture:Show()
   
   if db.showStacks then
-    frame.stacks:Show()
+    frame.stacksString:Show()
   else
-    frame.stacks:Hide()
+    frame.stacksString:Hide()
   end
   
   frame.cooldown:SetDrawSwipe(not db.hideSwirl)
+  frame.cooldown:SetCooldown(0, 0)
+  frame.chargeCooldown:SetDrawEdge(not db.hideSwirl)
+  frame.chargeCooldown:SetCooldown(0, 0)
   
   if Addon.unlocked then
     frame:Unlock()
@@ -342,36 +418,51 @@ local function initializeFrame(frame, db)
   else
     frame:Lock()
     
-    local unitID = db.unitID
-    frame:RegisterUnitEvent("UNIT_AURA", unitID)
-    
-    if string_match(unitID, "^target") then
-      frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    if db.iconType == "Aura" then
+      local unitID = db.unitID
+      frame:RegisterUnitEvent("UNIT_AURA", unitID)
+      
+      if string_match(unitID, "^target") then
+        frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+      end
+      
+      local unitMatch, targetMatch = string_match(unitID, "^(.+)(target)$")
+      if unitMatch and targetMatch then
+        frame:RegisterUnitEvent("UNIT_TARGET", unitMatch)
+      end
+      
+      if string_match(unitID, "^boss") then
+        frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+      end
+      
+      local nameplateMatch = string_match(unitID, "^nameplate%d")
+      if nameplateMatch then
+        frame:RegisterUnitEvent("NAME_PLATE_CREATED", nameplateMatch)
+        frame:RegisterUnitEvent("NAME_PLATE_UNIT_ADDED", nameplateMatch)
+        frame:RegisterUnitEvent("NAME_PLATE_UNIT_REMOVED", nameplateMatch)
+      end
+      
+      if db.pandemic and db.pandemicExtra > 0 and db.pandemicHasted then
+        frame:RegisterEvent("UNIT_SPELL_HASTE")
+      end
+      
+      frame:SetScript("OnEvent", auraEventHandler)
+      
+      auraEventHandler(frame)
+      
+    elseif db.iconType == "Cooldown" then
+      frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+      frame:RegisterEvent("SPELL_UPDATE_USABLE")
+      if db.showStacks then
+        frame:RegisterEvent("SPELL_UPDATE_CHARGES")
+      end
+      frame:SetScript("OnEvent", cooldownEventHandler)
+      if db.showOffCooldown then
+        frame:Show()
+      end
+      cooldownEventHandler(frame)
+      
     end
-    
-    local unitMatch, targetMatch = string_match(unitID, "^(.+)(target)$")
-    if unitMatch and targetMatch then
-      frame:RegisterUnitEvent("UNIT_TARGET", unitMatch)
-    end
-    
-    if string_match(unitID, "^boss") then
-      frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
-    end
-    
-    local nameplateMatch = string_match(unitID, "^nameplate%d")
-    if nameplateMatch then
-      frame:RegisterUnitEvent("NAME_PLATE_CREATED", nameplateMatch)
-      frame:RegisterUnitEvent("NAME_PLATE_UNIT_ADDED", nameplateMatch)
-      frame:RegisterUnitEvent("NAME_PLATE_UNIT_REMOVED", nameplateMatch)
-    end
-    
-    if db.pandemic and db.pandemicExtra > 0 and db.pandemicHasted then
-      frame:RegisterEvent("UNIT_SPELL_HASTE")
-    end
-    
-    frame:SetScript("OnEvent", auraEventHandler)
-    
-    auraEventHandler(frame)
   end
 end
 
@@ -392,6 +483,7 @@ local function buildFrames(db)
     end
   end
 end
+
 
 
 --------------------

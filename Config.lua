@@ -133,7 +133,7 @@ local function addGroups(profileOptions, profileDB)
     type = "execute",
     func = function(info)
       if db["New Group"] then
-        print(addonName..": New Group already exists")
+        print(addonName..": 'New Group' already exists")
       else
         db["New Group"] = {}
         ACD:SelectGroup(addonName, info[#info-1], "New Group")
@@ -168,7 +168,7 @@ local function addGroups(profileOptions, profileDB)
           name = "Name",
           type = "input",
           validate = function(info, value)
-            return (db[value] or value == "Root") and (addonName..": "..value.." already exists") or true
+            return (db[value] or value == "Root") and (addonName..": '"..value.."' already exists") or true
           end,
           get = function(info)
             return groupName
@@ -213,15 +213,15 @@ local function addAuras(profileOptions, profileDB)
   
   profileOptions.newAura = {
     order = order,
-    name = "New Aura",
+    name = "New Icon",
     type = "execute",
     func = function(info)
-      if db["New Aura"] then
-        print(addonName..": New Aura already exists")
+      if db["New Icon"] then
+        print(addonName..": 'New Icon' already exists")
       else
-        db["New Aura"] = {
+        db["New Icon"] = {
           parent = "Root",
-          name = "New Aura",
+          name = "New Icon",
           spell = "",
           unitID = "target",
           --multitarget = false,
@@ -244,7 +244,7 @@ local function addAuras(profileOptions, profileDB)
           posX = 0,
           posY = 0,
         }
-        ACD:SelectGroup(addonName, info[#info-1], "New Aura")
+        ACD:SelectGroup(addonName, info[#info-1], "New Icon")
       end
     end
   }
@@ -293,7 +293,7 @@ local function addAuras(profileOptions, profileDB)
           name = "Name",
           type = "input",
           validate = function(info, value)
-            return db[value] and (addonName..": "..value.." already exists") or true
+            return db[value] and (addonName..": '"..value.."' already exists") or true
           end,
           get = function(info)
             return auraName
@@ -323,16 +323,28 @@ local function addAuras(profileOptions, profileDB)
             Addon:Build()
           end,
         },
+        iconType = {
+          order = 1.1,
+          name = "Icon Type",
+          type = "select",
+          style = "dropdown",
+          values = {
+            ["Aura"] = "Aura",
+            ["Cooldown"] = "Cooldown"
+          }
+        },
         unitID = {
           order = 2,
           name = "Unit ID",
           type = "input",
+          hidden = auraDB.iconType ~= "Aura"
           -- TODO: Add validation
         },
         multitarget = {
           order = 2.1,
           name = "Multi Unit",
-          type = "toggle"
+          type = "toggle",
+          hidden = auraDB.iconType ~= "Aura"
         },
         multitargetCount = {
           order = 2.2,
@@ -341,7 +353,7 @@ local function addAuras(profileOptions, profileDB)
           min = 1,
           softMax = 20,
           step = 1,
-          hidden = not auraDB.multitarget
+          hidden = auraDB.iconType ~= "Aura" or not auraDB.multitarget
         },
         auraType = {
           order = 2.4,
@@ -351,22 +363,38 @@ local function addAuras(profileOptions, profileDB)
           values = {
             ["Buff"] = "Buff",
             ["Debuff"] = "Debuff",
-          }
+          },
+          hidden = auraDB.iconType ~= "Aura"
         },
         ownOnly = {
           order = 3,
           name = "Own Only",
           type = "toggle",
+          hidden = auraDB.iconType ~= "Aura"
+        },
+        showOffCooldown = {
+          order = 3.1,
+          name = "Show Off Cooldown",
+          type = "toggle",
+          hidden = auraDB.iconType ~= "Cooldown"
+        },
+        checkUsability = {
+          order = 3.2,
+          name = "Check Usability",
+          type = "toggle",
+          hidden = auraDB.iconType ~= "Cooldown"
         },
         headerPandemic = {
           order = 3.9,
           name = "Pandemic Configuration",
-          type = "header"
+          type = "header",
+          hidden = auraDB.iconType ~= "Aura"
         },
         pandemic = {
           order = 4,
           name = "Pandemic",
           type = "toggle",
+          hidden = auraDB.iconType ~= "Aura"
         },
         pandemicExtra = {
           order = 4.1,
@@ -375,13 +403,13 @@ local function addAuras(profileOptions, profileDB)
           min = 0,
           softMax = 10,
           step = 0.1,
-          hidden = not auraDB.pandemic
+          hidden = auraDB.iconType ~= "Aura" or not auraDB.pandemic
         },
         pandemicHasted = {
           order = 4.2,
           name = "Extra Pandemic Time is Hasted",
           type = "toggle",
-          hidden = not auraDB.pandemic or auraDB.pandemicExtra == 0
+          hidden = auraDB.iconType ~= "Aura" or not auraDB.pandemic or auraDB.pandemicExtra == 0
         },
         headerVisuals = {
           order = 4.4,
