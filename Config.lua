@@ -7,6 +7,7 @@ local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceCo
 ---------------
 local ACD = LibStub("AceConfigDialog-3.0")
 local ADB = LibStub("AceDB-3.0")
+local LSM = LibStub('LibSharedMedia-3.0')
 
 
 --------------
@@ -46,6 +47,9 @@ local defaultSettings = {
     auras = {
     },
     groups = {
+    },
+    options = {
+      font = "Friz Quadrata TT"
     }
   },
   class = {
@@ -650,6 +654,32 @@ local function addAuras(profileOptions, profileDB)
   renamedGroup[profileOptions] = nil
 end
 
+local function addOptions(profileOptions, profileDB)
+  local db = profileDB.options
+  
+  profileOptions.options = {
+    order = 12,
+    type = "group",
+    name = "Options",
+    get = function(info)
+      return db[info[#info]]
+    end,
+    set = function(info, value)
+      db[info[#info]] = value
+      Addon:Build()
+    end,
+    args = {
+      font = {
+        order = 1,
+        type = "select",
+        name = "Font",
+        dialogControl = "LSM30_Font",
+        values = LSM:HashTable("font")
+      }
+    }
+  }
+end
+
 local optionsBaseTbl = {
   type = "group",
   name = addonName,
@@ -669,6 +699,7 @@ local optionsBaseTbl = {
       childGroups = "tree",
       args = {}
     },
+    options = {}
   }
 }
 
@@ -677,12 +708,15 @@ local function options()
   wipe(optionsBaseTbl.args.global.args)
   wipe(groupPool)
   
-  -- Class options
+  -- Class
   addGroups(optionsBaseTbl.args.class.args, Addon.db.class)
   addAuras(optionsBaseTbl.args.class.args, Addon.db.class)
-  -- Global options
+  -- Global
   addGroups(optionsBaseTbl.args.global.args, Addon.db.global)
   addAuras(optionsBaseTbl.args.global.args, Addon.db.global)
+  
+  -- Options
+  addOptions(optionsBaseTbl.args, Addon.db.global)
   
   return optionsBaseTbl
 end
