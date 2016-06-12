@@ -29,6 +29,7 @@ local UnitAura = UnitAura
 ---------------
 local auraFrames = {}
 local auraFrameCache = {}
+local generalDB
 
 
 
@@ -142,10 +143,6 @@ local function createAuraFrame()
   local frameLevel = frame:GetFrameLevel()
   frame.backdrop:SetFrameLevel(frameLevel > 0 and (frameLevel - 1) or 0)
   
-  frame.stacksString = frame:CreateFontString()
-  frame.stacksString:SetPoint("BOTTOMRIGHT")
-  frame.stacksString:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
-  
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetPoint("TOPLEFT", 1, -1)
   frame.cooldown:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -156,6 +153,11 @@ local function createAuraFrame()
   frame.chargeCooldown:SetPoint("BOTTOMRIGHT", -1, 1)
   frame.chargeCooldown:SetDrawSwipe(false)
   
+  frame.stacksStringParent = CreateFrame("Frame", nil, frame)
+  frame.stacksStringParent:SetAllPoints()
+  frame.stacksString = frame.stacksStringParent:CreateFontString()
+  frame.stacksString:SetPoint("BOTTOMRIGHT", 0, 1)
+  
   frame.pandemicBorder = CreateFrame("Frame", nil, frame)
   frame.pandemicBorder:SetAllPoints()
   frame.pandemicBorder:SetBackdrop(pandemicBackdrop)
@@ -164,7 +166,6 @@ local function createAuraFrame()
   
   frame.nameString = frame:CreateFontString()
   frame.nameString:SetPoint("CENTER")
-  frame.nameString:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
   frame.nameString:SetWordWrap(true)
   
   frame.Unlock = frameUnlock
@@ -350,8 +351,8 @@ local function cooldownEventHandler(self, event, ...)
   end
   
   if self:IsShown() then
-    local usable = IsUsableSpell(db.spell)
-    if db.checkUsability and usable ~= self.usable then
+    if db.checkUsability then
+      local usable = IsUsableSpell(db.spell)
       if usable then
         self.texture:SetVertexColor(1, 1, 1)
       else
@@ -400,6 +401,7 @@ local function initializeFrame(frame, db)
   
   if db.showStacks then
     frame.stacksString:Show()
+    frame.stacksString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
   else
     frame.stacksString:Hide()
   end
@@ -408,6 +410,8 @@ local function initializeFrame(frame, db)
   frame.cooldown:SetCooldown(0, 0)
   frame.chargeCooldown:SetDrawEdge(not db.hideSwirl)
   frame.chargeCooldown:SetCooldown(0, 0)
+  
+  frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
   
   if Addon.unlocked then
     frame:Unlock()
@@ -490,6 +494,8 @@ end
 -- Initialization --
 --------------------
 function Addon:Build()
+  generalDB = self.db.global.options
+  
   wipeAuraFrames()
   buildFrames(self.db.class.auras)
   buildFrames(self.db.global.auras)
