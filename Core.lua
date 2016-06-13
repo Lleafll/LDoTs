@@ -15,7 +15,9 @@ local LSM = LibStub('LibSharedMedia-3.0')
 --------------
 local GetSpellCharges = GetSpellCharges
 local GetSpellCooldown = GetSpellCooldown
+local GetSpellInfo = GetSpellInfo
 local GetTime = GetTime
+local IsSpellKnown = IsSpellKnown
 local math_ceil = math.ceil
 local string_match = string.match
 local tonumber = tonumber
@@ -458,16 +460,19 @@ local function initializeFrame(frame, db)
       auraEventHandler(frame)
       
     elseif db.iconType == "Cooldown" then
-      frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
-      frame:RegisterEvent("SPELL_UPDATE_USABLE")
-      if db.showStacks then
-        frame:RegisterEvent("SPELL_UPDATE_CHARGES")
+      local _, _, _, _, _, _, spellID = GetSpellInfo(db.spell)
+      if spellID and IsSpellKnown(spellID) then
+        frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+        frame:RegisterEvent("SPELL_UPDATE_USABLE")
+        if db.showStacks then
+          frame:RegisterEvent("SPELL_UPDATE_CHARGES")
+        end
+        frame:SetScript("OnEvent", cooldownEventHandler)
+        if db.showOffCooldown then
+          frame:Show()
+        end
+        cooldownEventHandler(frame)
       end
-      frame:SetScript("OnEvent", cooldownEventHandler)
-      if db.showOffCooldown then
-        frame:Show()
-      end
-      cooldownEventHandler(frame)
       
     end
   end

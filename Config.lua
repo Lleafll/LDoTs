@@ -763,6 +763,7 @@ function Addon:OnInitialize()
   
   self:RegisterEvent("PLAYER_ENTERING_WORLD", function()  -- Delay so UIScale can be read
     Addon:Build()
+    Addon:RegisterEvent("PLAYER_TALENT_UPDATE", "Build")
     Addon:UnregisterEvent("PLAYER_ENTERING_WORLD")
   end)
 end
