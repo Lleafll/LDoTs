@@ -341,6 +341,9 @@ local function cooldownEventHandler(self, event, ...)
       self.cooldown:SetCooldown(start, duration)
       self.start = start
       self.duration = duration
+      if stacks and stacks == 0 and self.chargeCooldown:GetCooldownDuration() then
+        self.chargeCooldown:SetCooldown(0, 0)
+      end
     end
     
   else
