@@ -49,7 +49,9 @@ local defaultSettings = {
     groups = {
     },
     options = {
-      font = "Friz Quadrata TT"
+      font = "Friz Quadrata TT",
+      borderPandemicColor = {r=0.51, b=0.00, g=0.24, a=1},
+      borderPandemicColor2 = {r=0.38, b=0.23, g=0.51, a=1},
     }
   },
   class = {
@@ -669,13 +671,51 @@ local function addOptions(profileOptions, profileDB)
       Addon:Build()
     end,
     args = {
+      fontHeader = {
+        order = 0.9,
+        name = "Font",
+        type = "header",
+      },
       font = {
         order = 1,
         type = "select",
         name = "Font",
         dialogControl = "LSM30_Font",
         values = LSM:HashTable("font")
-      }
+      },
+      bordersHeader = {
+        order = 10,
+        name = "Borders",
+        type = "header",
+      },
+      borderPandemicColor = {
+        order = 11,
+        name = "In Pandemic Color",
+        type = "color",
+        hasAlpha = true,
+        get = function()
+          local r, b, g, a = db.borderPandemicColor.r, db.borderPandemicColor.b, db.borderPandemicColor.g, db.borderPandemicColor.a
+          return r, b, g, a
+        end,
+        set = function(info, r, b, g, a)
+          db.borderPandemicColor.r, db.borderPandemicColor.b, db.borderPandemicColor.g, db.borderPandemicColor.a = r, b, g, a
+          Addon:Build()
+        end
+      },
+      borderPandemicColor2 = {
+        order = 12,
+        name = "Out of Pandemic Color",
+        type = "color",
+        hasAlpha = true,
+        get = function()
+          local r, b, g, a = db.borderPandemicColor2.r, db.borderPandemicColor2.b, db.borderPandemicColor2.g, db.borderPandemicColor2.a
+          return r, b, g, a
+        end,
+        set = function(info, r, b, g, a)
+          db.borderPandemicColor2.r, db.borderPandemicColor2.b, db.borderPandemicColor2.g, db.borderPandemicColor2.a = r, b, g, a
+          Addon:Build()
+        end
+      },
     }
   }
 end
