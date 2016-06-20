@@ -262,7 +262,14 @@ local function auraEventHandler(self, event, ...)
       
       if expires > 0 then
         if db.pandemic then
-          self.cooldown:SetCooldown(inPandemic and (expires - pandemic) or (expires - duration), inPandemic and (pandemic) or (duration - pandemic))
+          if inPandemic then
+            self.cooldown:SetCooldown(expires - pandemic, pandemic)
+          else
+            if self.cooldown:GetCooldownDuration() then
+              self.cooldown:SetCooldown(0, 0)
+            end
+            self.chargeCooldown:SetCooldown(expires - duration, duration - pandemic)
+          end
         else
           self.cooldown:SetCooldown(expires - duration, duration)
         end
@@ -418,8 +425,6 @@ local function initializeFrame(frame, db)
   
   frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
   
-  frame.backdrop:SetBackdropBorderColor(0, 0, 0, 1)
-    
   if Addon.unlocked then
     frame:Unlock()
     frame:SetScript("OnEvent", nil)
@@ -430,12 +435,8 @@ local function initializeFrame(frame, db)
     frame:Lock()
     
     if db.iconType == "Aura" then
-      if db.pandemic then
-        local c = generalDB.borderPandemicColor
-        frame.pandemicBorder:SetBackdropBorderColor(c.r, c.b, c.g, c.a)
-        c = generalDB.borderPandemicColor2
-        frame.backdrop:SetBackdropBorderColor(c.r, c.b, c.g, c.a)
-      end      
+      local c = generalDB.borderPandemicColor
+      frame.pandemicBorder:SetBackdropBorderColor(c.r, c.b, c.g, c.a)
       
       local unitID = db.unitID
       frame:RegisterUnitEvent("UNIT_AURA", unitID)

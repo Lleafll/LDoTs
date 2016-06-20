@@ -51,7 +51,6 @@ local defaultSettings = {
     options = {
       font = "Friz Quadrata TT",
       borderPandemicColor = {r=0.51, b=0.00, g=0.24, a=1},
-      borderPandemicColor2 = {r=0.38, b=0.23, g=0.51, a=1},
     }
   },
   class = {
@@ -699,20 +698,6 @@ local function addOptions(profileOptions, profileDB)
         end,
         set = function(info, r, b, g, a)
           db.borderPandemicColor.r, db.borderPandemicColor.b, db.borderPandemicColor.g, db.borderPandemicColor.a = r, b, g, a
-          Addon:Build()
-        end
-      },
-      borderPandemicColor2 = {
-        order = 12,
-        name = "Out of Pandemic Color",
-        type = "color",
-        hasAlpha = true,
-        get = function()
-          local r, b, g, a = db.borderPandemicColor2.r, db.borderPandemicColor2.b, db.borderPandemicColor2.g, db.borderPandemicColor2.a
-          return r, b, g, a
-        end,
-        set = function(info, r, b, g, a)
-          db.borderPandemicColor2.r, db.borderPandemicColor2.b, db.borderPandemicColor2.g, db.borderPandemicColor2.a = r, b, g, a
           Addon:Build()
         end
       },
