@@ -149,11 +149,13 @@ local function createAuraFrame()
   frame.cooldown:SetPoint("TOPLEFT", 1, -1)
   frame.cooldown:SetPoint("BOTTOMRIGHT", -1, 1)
   frame.cooldown:SetDrawEdge(false)
+  frame.cooldown:SetDrawBling(false)
   
   frame.chargeCooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.chargeCooldown:SetPoint("TOPLEFT", 1, -1)
   frame.chargeCooldown:SetPoint("BOTTOMRIGHT", -1, 1)
   frame.chargeCooldown:SetDrawSwipe(false)
+  frame.chargeCooldown:SetDrawBling(false)
   
   frame.stacksStringParent = CreateFrame("Frame", nil, frame)
   frame.stacksStringParent:SetAllPoints()
