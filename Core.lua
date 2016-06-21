@@ -485,7 +485,7 @@ local function initializeFrame(frame, db)
   else
     frame:Lock()
     
-    frame.visibility = db.visibility and db.visibility ~= "" and db.visibility or nil
+    frame.visibility = db.visibility ~= "" and db.visibility or nil
     frame.visible = true
     
     if db.iconType == "Aura" then
