@@ -389,9 +389,23 @@ local function addAuras(profileOptions, profileDB)
           type = "toggle",
           hidden = auraDB.iconType ~= "Cooldown"
         },
+        headerVisibility = {
+          order = 3.3,
+          name = "Visibility",
+          type = "header",
+        },
+        visibility = {
+          order = 3.4,
+          name = "Visibility",
+          type = "input",
+          set = function(info, value)
+            auraDB.visibility = value
+            Addon:Build()
+          end,
+        },        
         headerPandemic = {
           order = 3.9,
-          name = "Pandemic Configuration",
+          name = "Pandemic",
           type = "header",
           hidden = auraDB.iconType ~= "Aura"
         },

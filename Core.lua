@@ -19,6 +19,7 @@ local GetSpellInfo = GetSpellInfo
 local GetTime = GetTime
 local IsSpellKnown = IsSpellKnown
 local math_ceil = math.ceil
+local SecureCmdOptionParse = SecureCmdOptionParse
 local string_match = string.match
 local tonumber = tonumber
 local tostring = tostring
@@ -213,6 +214,10 @@ end
 -- Aura Behavior --
 -------------------
 local function auraEventHandler(self, event, ...)
+  if not self.visible then
+    return
+  end
+  
   if event == "NAME_PLATE_UNIT_ADDED" or event == "PLAYER_TARGET_CHANGED"then
     self.duration = nil
     self.expires = nil
@@ -329,6 +334,10 @@ end
 -- Cooldown Behavior --
 -----------------------
 local function cooldownEventHandler(self, event, ...)
+  if not self.visible then
+    return
+  end
+  
   local db = self.db
   
   local start, duration, enable = GetSpellCooldown(db.spell)
@@ -383,6 +392,45 @@ end
 
 
 
+-----------------------
+-- Visibility Parser --
+-----------------------
+local function parseVisibility()
+  for _, frame in pairs(auraFrames) do
+    if frame.visibility then
+      local action = SecureCmdOptionParse(frame.visibility)
+      if action ~= "show" then
+        if frame.visible then
+          frame.visible = false
+          frame:Hide()
+        end
+      elseif not frame.visible then
+        frame.visible = true
+        frame.eventHandler(frame)
+      end
+    end
+  end
+end
+
+do
+  local commandParseTimer = CreateFrame("Frame")
+  
+  local totalElapsed = 0
+  commandParseTimer:SetScript("OnUpdate", function(self, elapsed)
+    totalElapsed = totalElapsed + elapsed
+    if totalElapsed > 0.1 then
+      parseVisibility()
+      totalElapsed = 0
+    end
+  end)
+  
+  commandParseTimer:RegisterEvent("PLAYER_TARGET_CHANGED")
+  commandParseTimer:RegisterEvent("PLAYER_REGEN_DISABLED")
+  commandParseTimer:SetScript("OnEvent", parseVisibility)
+end 
+
+
+
 -----------
 -- Icons --
 -----------
@@ -429,12 +477,16 @@ local function initializeFrame(frame, db)
   
   if Addon.unlocked then
     frame:Unlock()
+    frame.visibility = nil
     frame:SetScript("OnEvent", nil)
     if db.hide then
       frame.texture:Hide()
     end
   else
     frame:Lock()
+    
+    frame.visibility = db.visibility and db.visibility ~= "" and db.visibility or nil
+    frame.visible = true
     
     if db.iconType == "Aura" then
       local c = generalDB.borderPandemicColor
@@ -467,9 +519,7 @@ local function initializeFrame(frame, db)
         frame:RegisterEvent("UNIT_SPELL_HASTE")
       end
       
-      frame:SetScript("OnEvent", auraEventHandler)
-      
-      auraEventHandler(frame)
+      frame.eventHandler = auraEventHandler
       
     elseif db.iconType == "Cooldown" then
       local _, _, _, _, _, _, spellID = GetSpellInfo(db.spell)
@@ -483,10 +533,17 @@ local function initializeFrame(frame, db)
         if db.showOffCooldown then
           frame:Show()
         end
-        cooldownEventHandler(frame)
+        frame.eventHandler = cooldownEventHandler
+      else
+        frame.eventHandler = function() end  -- Dummy function for easier code
+        
       end
       
     end
+    
+    frame:SetScript("OnEvent", frame.eventHandler)
+    frame.eventHandler(frame)
+    
   end
 end
 
