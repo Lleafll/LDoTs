@@ -445,11 +445,11 @@ local function addAuras(profileOptions, profileDB)
           name = "Show Stacks",
           type = "toggle",
         },
-        hideSwirl = {
+        --[[hideSwirl = {
           order = 4.6,
           name = "Hide Cooldown Swirl",
           type = "toggle",
-        },
+        },]]--
         height = {
           order = 5,
           name = "Icon Height",
