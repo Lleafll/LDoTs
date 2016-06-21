@@ -50,7 +50,7 @@ local defaultSettings = {
     },
     options = {
       font = "Friz Quadrata TT",
-      borderPandemicColor = {r=0.51, b=0.00, g=0.24, a=1},
+      borderPandemicColor = {r=1, b=0, g=0, a=1},
     }
   },
   class = {
@@ -140,7 +140,9 @@ local function addGroups(profileOptions, profileDB)
       if db["New Group"] then
         print(addonName..": 'New Group' already exists")
       else
-        db["New Group"] = {}
+        db["New Group"] = {
+          groupType = "Group"
+        }
         ACD:SelectGroup(addonName, info[#info-1], "New Group")
       end
     end
@@ -167,7 +169,6 @@ local function addGroups(profileOptions, profileDB)
         Addon:Build()
       end,
       args = {
-        parent = buildParentGroupOption(profileDB, db, groupDB, 1.1),
         name = {
           order = 1,
           name = "Name",
@@ -186,6 +187,22 @@ local function addGroups(profileOptions, profileDB)
             selectFromTree(db, profileDB, groupDB)
             Addon:Build()
           end,
+        },
+        parent = buildParentGroupOption(profileDB, db, groupDB, 2),
+        groupType = {
+          order = 3,
+          name = "Type",
+          type = "select",
+          style = "dropdown",
+          values = {
+            ["Group"] = "Group",
+            ["Dynamic Group"] = "Dynamic Group"
+          }
+        },        
+        deleteGroupHeader = {
+          order = 99,
+          name = "Delete Group",
+          type = "header"
         },
         deleteGroup = {
           order = 100,

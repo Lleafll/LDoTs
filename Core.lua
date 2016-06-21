@@ -33,6 +33,8 @@ local UnitAura = UnitAura
 local auraFrames = {}
 local auraFrameCache = {}
 local generalDB
+local groupFrames = {}
+local groupFrameCache = {}
 
 
 
@@ -114,9 +116,59 @@ end
 
 
 
--------------------------------
--- Frame Factory and Caching --
--------------------------------
+-------------------------------------
+-- Group Frame Factory and Caching --
+-------------------------------------
+local function positionIcons(self)
+
+end
+
+local function registerIconToGroup(self, icon)
+  local icons = self.icons
+  icons[#icons+1] = icon
+  self:PositionIcons()
+end
+
+local function createGroupFrame()
+  local frame = CreateFrame("Frame")
+  frame.PositionIcons = positionIcons
+  frame.RegisterIconToGroup = registerIconToGroup
+end
+
+local function getGroupFrame()
+  local frame
+  
+  local groupFrameCacheLength = #groupFrameCache
+  if groupFrameCacheLength == 0 then
+    frame = createGroupFrame()
+  else
+    frame = groupFrameCache[groupFrameCacheLength]
+    groupFrameCache[groupFrameCacheLength] = nil
+  end
+  
+  groupFrames[#groupFrames+1] = frame
+  
+  return frame
+end
+
+local function storeGroupFrame(frame)
+  frame:Hide()
+  frame:SetScript("OnEvent", nil)
+  groupFrameCache[#groupFrameCache+1] = frame
+end
+
+local function wipeGroupFrames()
+  for k, v in pairs(groupFrames) do
+    storeGroupFrame(v)
+    groupFrames[k] = nil
+  end
+end
+
+
+
+------------------------------------
+-- Icon Frame Factory and Caching --
+------------------------------------
 local backdrop = {
   bgFile = nil,
   edgeFile = LSM:Fetch('background', "Solid"),
@@ -424,11 +476,28 @@ do
     end
   end)
   
+  -- Increase responsiveness
   commandParseTimer:RegisterEvent("PLAYER_TARGET_CHANGED")
   commandParseTimer:RegisterEvent("PLAYER_REGEN_DISABLED")
   commandParseTimer:SetScript("OnEvent", parseVisibility)
-end 
+end
 
+
+
+------------
+-- Groups --
+------------
+local function buildGroups(profileDB)
+  local db = profileDB.groups
+  for k, v in pairs(db) do
+    if v.groupType == "Dynamic Group" then
+      
+      -- Debug
+      print(k)
+      
+    end
+  end
+end
 
 
 -----------
@@ -478,6 +547,7 @@ local function initializeFrame(frame, db)
   if Addon.unlocked then
     frame:Unlock()
     frame.visibility = nil
+    frame.visible = true
     frame:SetScript("OnEvent", nil)
     if db.hide then
       frame.texture:Hide()
@@ -547,7 +617,8 @@ local function initializeFrame(frame, db)
   end
 end
 
-local function buildFrames(db)
+local function buildFrames(profileDB)
+  local db = profileDB.auras
   for k, v in pairs(db) do
     if v.multitarget then
       for k2 = 1, v.multitargetCount do
@@ -573,9 +644,13 @@ end
 function Addon:Build()
   generalDB = self.db.global.options
   
+  wipeGroupFrames()
+  buildGroups(self.db.class)
+  buildGroups(self.db.global)
+  
   wipeAuraFrames()
-  buildFrames(self.db.class.auras)
-  buildFrames(self.db.global.auras)
+  buildFrames(self.db.class)
+  buildFrames(self.db.global)
   
   self:ClearPandemicTimers()
 end
