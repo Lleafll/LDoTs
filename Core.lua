@@ -21,6 +21,7 @@ local IsSpellKnown = IsSpellKnown
 local math_ceil = math.ceil
 local SecureCmdOptionParse = SecureCmdOptionParse
 local string_match = string.match
+local table_sort = table.sort
 local tonumber = tonumber
 local tostring = tostring
 local UnitAura = UnitAura
@@ -120,24 +121,49 @@ end
 -------------------------------------
 -- Group Frame Factory and Caching --
 -------------------------------------
+local sortGroup = {}
+
+sortGroup.Right = function(a, b)
+  return a.db.posX < b.db.posX
+end
+
+sortGroup.Left = function(a, b)
+  return a.db.posX > b.db.posX
+end
+
+sortGroup.Up = function(a, b)
+  return a.db.posY < b.db.posY
+end
+
+sortGroup.Down = function(a, b)
+  return a.db.posY > b.db.posY
+end
+
 local function positionIcons(self)
-  local anchor
-  local x
-  local y
+  local firstIcon = self.icons[1]
+  if not firstIcon then
+    return
+  end
+  local UIScale = UIParent:GetScale()
+  local firstIconDB = firstIcon.db
+  local anchor = self.icons[1].db.anchor
+  local x = (firstIconDB.posX + (firstIconDB.width % 2 > 0 and 0.5 or 0)) * UIScale
+  local y = (firstIconDB.posY + (firstIconDB.height % 2 > 0 and 0.5 or 0)) * UIScale
+  local direction = self.db.direction
   for k, icon in pairs(self.icons) do
     if icon:IsShown() then
-      icon:ClearAllPoints()
-      local UIScale = UIParent:GetScale()
       local db = icon.db
-      if x then
-        icon:ClearAllPoints()
-      else  -- Maybe write into own function to share with icon initialization
-        anchor = db.anchor
-        x = (db.posX + (db.width % 2 > 0 and 0.5 or 0)) * UIScale
-        y = (db.posY + (db.height % 2 > 0 and 0.5 or 0)) * UIScale
-      end
+      icon:ClearAllPoints()
       icon:SetPoint(anchor, x, y)
-      x = x + (db.width + 1) * UIScale
+      if direction == "Right" then
+        x = x + (db.width + 1) * UIScale
+      elseif direction == "Left" then
+        x = x - (db.width + 1) * UIScale
+      elseif direction == "Up" then
+        y = y + (db.height + 1) * UIScale
+      elseif direction == "Down" then
+        y = y - (db.height + 1) * UIScale
+      end
     end
   end
 end
@@ -155,6 +181,7 @@ local function registerIconToGroup(icon, profileName, groupName)
   if group then
     local icons = group.icons
     icons[#icons+1] = icon
+    table_sort(icons, sortGroup[group.db.direction])
     icon:SetScript("OnShow", function() positionIcons(group) end)
     icon:SetScript("OnHide", function() positionIcons(group) end)
     group:PositionIcons()

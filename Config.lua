@@ -141,7 +141,8 @@ local function addGroups(profileOptions, profileDB)
         print(addonName..": 'New Group' already exists")
       else
         db["New Group"] = {
-          groupType = "Group"
+          groupType = "Group",
+          direction = "Right"
         }
         ACD:SelectGroup(addonName, info[#info-1], "New Group")
       end
@@ -198,7 +199,20 @@ local function addGroups(profileOptions, profileDB)
             ["Group"] = "Group",
             ["Dynamic Group"] = "Dynamic Group"
           }
-        },        
+        },
+        direction = {
+          order = 4,
+          name = "Direction",
+          type = "select",
+          style = "dropdown",
+          hidden = groupDB.groupType ~= "Dynamic Group",
+          values = {
+            ["Left"] = "Left",
+            ["Right"] = "Right",
+            ["Up"] = "Up",
+            ["Down"] = "Down"
+          }
+        },
         deleteGroupHeader = {
           order = 99,
           name = "Delete Group",
