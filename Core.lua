@@ -24,6 +24,7 @@ local string_match = string.match
 local tonumber = tonumber
 local tostring = tostring
 local UnitAura = UnitAura
+local wipe = wipe
 
 
 
@@ -120,19 +121,55 @@ end
 -- Group Frame Factory and Caching --
 -------------------------------------
 local function positionIcons(self)
-
+  local anchor
+  local x
+  local y
+  for k, icon in pairs(self.icons) do
+    if icon:IsShown() then
+      icon:ClearAllPoints()
+      local UIScale = UIParent:GetScale()
+      local db = icon.db
+      if x then
+        icon:ClearAllPoints()
+      else  -- Maybe write into own function to share with icon initialization
+        anchor = db.anchor
+        x = (db.posX + (db.width % 2 > 0 and 0.5 or 0)) * UIScale
+        y = (db.posY + (db.height % 2 > 0 and 0.5 or 0)) * UIScale
+      end
+      icon:SetPoint(anchor, x, y)
+      x = x + (db.width + 1) * UIScale
+    end
+  end
 end
 
-local function registerIconToGroup(self, icon)
-  local icons = self.icons
-  icons[#icons+1] = icon
-  self:PositionIcons()
+local function lookupGroup(profileName, groupName)
+  for k, v in pairs(groupFrames) do
+    if v.db.name == groupName and v.profileName == profileName then
+      return v
+    end
+  end
+end
+
+local function registerIconToGroup(icon, profileName, groupName)
+  local group = lookupGroup(profileName, groupName)
+  if group then
+    local icons = group.icons
+    icons[#icons+1] = icon
+    icon:SetScript("OnShow", function() positionIcons(group) end)
+    icon:SetScript("OnHide", function() positionIcons(group) end)
+    group:PositionIcons()
+  else
+    icon:SetScript("OnShow", nil)
+    icon:SetScript("OnHide", nil)
+  end
 end
 
 local function createGroupFrame()
   local frame = CreateFrame("Frame")
   frame.PositionIcons = positionIcons
   frame.RegisterIconToGroup = registerIconToGroup
+  frame.icons = {}
+  return frame
 end
 
 local function getGroupFrame()
@@ -154,6 +191,7 @@ end
 local function storeGroupFrame(frame)
   frame:Hide()
   frame:SetScript("OnEvent", nil)
+  wipe(frame.icons)
   groupFrameCache[#groupFrameCache+1] = frame
 end
 
@@ -487,14 +525,17 @@ end
 ------------
 -- Groups --
 ------------
+local function initializeDynamicGroup(db, profileName)
+  local frame = getGroupFrame()
+  frame.db = db
+  frame.profileName = profileName
+end
+
 local function buildGroups(profileDB)
   local db = profileDB.groups
   for k, v in pairs(db) do
     if v.groupType == "Dynamic Group" then
-      
-      -- Debug
-      print(k)
-      
+      initializeDynamicGroup(v, profileDB.profile)
     end
   end
 end
@@ -503,7 +544,7 @@ end
 -----------
 -- Icons --
 -----------
-local function initializeFrame(frame, db)
+local function initializeFrame(frame, db, profileName)
   frame.db = db
   
   frame:Hide()
@@ -515,6 +556,8 @@ local function initializeFrame(frame, db)
   frame:SetSize(width * UIScale, height * UIScale)
   frame:ClearAllPoints()
   frame:SetPoint(db.anchor, posX * UIScale, posY * UIScale)
+  
+  registerIconToGroup(frame, profileName, db.parent)
   
   local _, icon
   if db.iconOverride and db.iconOverride ~= "" then
@@ -625,12 +668,12 @@ local function buildFrames(profileDB)
         local v2 = v[tostring(k2)]
         if v2 and not v2.disable then
           setmetatable(v2, {__index = v})  -- Might be hacky and corrupt the database
-          initializeFrame(getAuraFrame(), v2)
+          initializeFrame(getAuraFrame(), v2, profileDB.profile)
         end
       end
     else
       if not v.disable then
-        initializeFrame(getAuraFrame(), v)
+        initializeFrame(getAuraFrame(), v, profileDB.profile)
       end
     end
   end
