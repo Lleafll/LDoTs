@@ -482,6 +482,7 @@ local function addAuras(profileOptions, profileDB)
           order = 3.4,
           name = "Visibility",
           type = "input",
+          width = "full",
           set = function(info, value)
             auraDB.visibility = value
             Addon:Build()
