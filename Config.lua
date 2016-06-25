@@ -229,7 +229,9 @@ local function addGroups(profileOptions, profileDB)
       else
         db["New Group"] = {
           groupType = "Group",
-          direction = "Right"
+          direction = "Right",
+          posX = GetScreenWidth() / 2,
+          posY = GetScreenHeight() / 2
         }
         ACD:SelectGroup(addonName, info[#info-1], "New Group")
       end
@@ -300,6 +302,24 @@ local function addGroups(profileOptions, profileDB)
             ["Down"] = "Down"
           }
         },
+        posX = {
+          order = 5,
+          name = "X Position",
+          type = "range",
+          min = -math_ceil(GetScreenWidth()),
+          max = math_ceil(GetScreenWidth()),
+          step = 1,
+          hidden = groupDB.groupType ~= "Dynamic Group"
+        },
+        posY = {
+          order = 6,
+          name = "Y Position",
+          type = "range",
+          min = -math_ceil(GetScreenHeight()),
+          max = math_ceil(GetScreenHeight()),
+          step = 1,
+          hidden = groupDB.groupType ~= "Dynamic Group"
+        },
         deleteGroupHeader = {
           order = 99,
           name = "Delete Group",
@@ -364,8 +384,8 @@ local function addAuras(profileOptions, profileDB)
           arrangeXDistance = 33,
           arrangeYDistance = 33,
           --anchor = "CENTER",
-          posX = 400,
-          posY = 300,
+          posX = GetScreenWidth() / 2,
+          posY = GetScreenHeight() / 2,
         }
         ACD:SelectGroup(addonName, info[#info-1], "New Icon")
       end

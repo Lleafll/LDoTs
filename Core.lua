@@ -65,10 +65,12 @@ local function onMouseDownHandler(self, button)
     self:StartMoving()
   elseif button == "RightButton" then
     local db = self.db
-    local tbl = getmetatable(db)  -- Get parent if multitarget frame
-    tbl = tbl and tbl.__index or db
-    tbl.hide = true
-    Addon:Options()
+    if not db.groupType then
+      local tbl = getmetatable(db)  -- Get parent if multitarget frame
+      tbl = tbl and tbl.__index or db
+      tbl.hide = true
+      Addon:Options()
+    end
   end
 end
 
@@ -76,10 +78,10 @@ local function onMouseUpHandler(self, button)
   if button == "LeftButton" then
     self:StopMovingOrSizing()
     local posX, posY = self:GetRect()
-    local UIScale = UIParent:GetScale()
-    self.db.posX = math_ceil(posX / UIScale - 0.5)
-    self.db.posY = math_ceil(posY / UIScale - 0.5)
+    self.db.posX = math_ceil(posX - 0.5)
+    self.db.posY = math_ceil(posY - 0.5)
     Addon:Options()
+    Addon:Build()
   end
 end
 
@@ -143,30 +145,43 @@ sortGroup.Down = function(a, b)
 end
 
 local function positionIcons(self)
-  local firstIcon = self.icons[1]
-  if not firstIcon then
+  if not self.icons[1] then
     return
   end
-  local UIScale = UIParent:GetScale()
-  local firstIconDB = firstIcon.db
-  local posX = firstIconDB.posX
-  local posY = firstIconDB.posY
-  local x = (posX + (firstIconDB.width % 2 > 0 and 0.5 or 0)) * UIScale
-  local y = (posY + (firstIconDB.height % 2 > 0 and 0.5 or 0)) * UIScale
+  local groupDB = self.db
+  local posX = groupDB.posX or 800
+  local posY = groupDB.posY or 500
+  local x = posX
+  local y = posY
   local direction = self.db.direction
+  
+  if Addon.unlocked then
+    self.dragger:ClearAllPoints()
+    self.dragger:SetPoint("BOTTOMLEFT", x, y)
+    if direction == "Right" then
+      x = x + (32 + 1)
+    elseif direction == "Left" then
+      x = x - (32 + 1)
+    elseif direction == "Up" then
+      y = y + (32 + 1)
+    elseif direction == "Down" then
+      y = y - (32 + 1)
+    end
+  end
+  
   for k, icon in pairs(self.icons) do
     if icon:IsShown() then
       local db = icon.db
       icon:ClearAllPoints()
       icon:SetPoint("BOTTOMLEFT", x, y)
       if direction == "Right" then
-        x = x + (db.width + 1) * UIScale
+        x = x + (db.width + 1)
       elseif direction == "Left" then
-        x = x - (db.width + 1) * UIScale
+        x = x - (db.width + 1)
       elseif direction == "Up" then
-        y = y + (db.height + 1) * UIScale
+        y = y + (db.height + 1)
       elseif direction == "Down" then
-        y = y - (db.height + 1) * UIScale
+        y = y - (db.height + 1)
       end
       
       if Addon.unlocked then
@@ -209,7 +224,7 @@ local function registerIconToGroup(icon, profileName, groupName)
 end
 
 local function createGroupFrame()
-  local frame = CreateFrame("Frame")
+  local frame = CreateFrame("Frame", nil, UIParent)
   frame.PositionIcons = positionIcons
   frame.RegisterIconToGroup = registerIconToGroup
   frame.icons = {}
@@ -236,6 +251,7 @@ local function storeGroupFrame(frame)
   frame:Hide()
   frame:SetScript("OnEvent", nil)
   wipe(frame.icons)
+  frame.dragger = nil
   groupFrameCache[#groupFrameCache+1] = frame
 end
 
@@ -267,7 +283,7 @@ local pandemicBackdrop = {
 }
 
 local function createAuraFrame()
-  local frame = CreateFrame("Frame")
+  local frame = CreateFrame("Frame", nil, UIParent)
   
   frame.texture = frame:CreateTexture(nil, "BACKGROUND")
   frame.texture:SetAllPoints()
@@ -278,7 +294,7 @@ local function createAuraFrame()
   frame.backdrop:SetBackdrop(backdrop)
   frame.backdrop:SetBackdropBorderColor(0, 0, 0, 1)
   local frameLevel = frame:GetFrameLevel()
-  frame.backdrop:SetFrameLevel(frameLevel > 0 and (frameLevel - 1) or 0)
+  frame.backdrop:SetFrameLevel(frameLevel)
   
   frame.cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
   frame.cooldown:SetPoint("TOPLEFT", 1, -1)
@@ -339,7 +355,11 @@ local function storeAuraFrame(frame)
   frame.cooldown:SetCooldown(0, 0)
   frame.chargeCooldown:SetCooldown(0, 0)
   frame.texture:SetVertexColor(1, 1, 1)
+  frame.texture:SetDesaturated(false)
   frame.duration = nil
+  frame.visibility = nil
+  frame.eventHandler = nil
+  frame.db = nil
   
   auraFrameCache[#auraFrameCache+1] = frame
 end
@@ -367,7 +387,7 @@ local function auraEventHandler(self, event, ...)
     self.pandemic = nil
     self.inPandemic = nil
   elseif event == "NAME_PLATE_UNIT_REMOVED" then
-    self:Hide()
+      self:Hide()
     return
   end
   
@@ -495,7 +515,7 @@ local function cooldownEventHandler(self, event, ...)
   end
   
   if start == 0 and not db.showOffCooldown then
-    self:Hide()
+      self:Hide()
     return
     
   elseif start > 0 or gcdStart or (stacks and stacks < maxStacks) then
@@ -588,6 +608,23 @@ local function initializeDynamicGroup(db, profileName)
   local frame = getGroupFrame()
   frame.db = db
   frame.profileName = profileName
+  frame:Show()
+  
+  if Addon.unlocked then
+    local dragger = getAuraFrame()
+    dragger.db = db
+    dragger:SetSize(32, 32)
+    dragger.texture:SetTexture("Interface\\Icons\\ability_blackhand_marked4death")
+    dragger.texture:Show()
+    dragger.pandemicBorder:Hide()
+    dragger.stacksString:Hide()
+    dragger.nameString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
+    dragger.visible = true
+    dragger.visibility = nil
+    dragger:Unlock()
+    
+    frame.dragger = dragger
+  end
 end
 
 local function buildGroups(profileDB)
@@ -606,15 +643,12 @@ end
 local function initializeFrame(frame, db, profileName)
   frame.db = db
   
-  frame:Hide()
+  frame:Show()
   local width = db.width
   local height = db.height
-  local posX = db.posX + (width % 2 > 0 and 0.5 or 0)
-  local posY = db.posY + (height % 2 > 0 and 0.5 or 0)
-  local UIScale = UIParent:GetScale()
-  frame:SetSize(width * UIScale, height * UIScale)
+  frame:SetSize(width, height)
   frame:ClearAllPoints()
-  frame:SetPoint("BOTTOMLEFT", posX * UIScale, posY * UIScale)
+  frame:SetPoint("BOTTOMLEFT", db.posX, db.posY)
   
   local _, icon
   if db.iconOverride and db.iconOverride ~= "" then
@@ -646,9 +680,7 @@ local function initializeFrame(frame, db, profileName)
     
   if Addon.unlocked then
     frame:Unlock()
-    frame.visibility = nil
     frame.visible = true
-    frame:SetScript("OnEvent", nil)
     if db.hide then
       frame.texture:Hide()
     end
@@ -775,10 +807,11 @@ function Addon:Build()
   generalDB = self.db.global.options
   
   wipeGroupFrames()
+  wipeAuraFrames()
+  
   buildGroups(self.db.class)
   buildGroups(self.db.global)
   
-  wipeAuraFrames()
   buildFrames(self.db.class)
   buildFrames(self.db.global)
   
