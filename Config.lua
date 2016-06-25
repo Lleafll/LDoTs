@@ -7,6 +7,7 @@ local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceCo
 ---------------
 local ACD = LibStub("AceConfigDialog-3.0")
 local ADB = LibStub("AceDB-3.0")
+local FIP = IndentationLib
 local GUI = LibStub("AceGUI-3.0")
 local LSM = LibStub('LibSharedMedia-3.0')
 
@@ -77,11 +78,47 @@ local defaultSettings = {
 --------------------------------------
 -- Extra Frame for Custom Functions --
 --------------------------------------
+-- Color Table copied from WeakAuras
+local colorTable = {}
+colorTable[IndentationLib.tokens.TOKEN_SPECIAL] = "|c00ff3333"
+colorTable[IndentationLib.tokens.TOKEN_KEYWORD] = "|c004444ff"
+colorTable[IndentationLib.tokens.TOKEN_COMMENT_SHORT] = "|c0000aa00"
+colorTable[IndentationLib.tokens.TOKEN_COMMENT_LONG] = "|c0000aa00"
+colorTable[IndentationLib.tokens.TOKEN_NUMBER] = "|c00ff9900"
+colorTable[IndentationLib.tokens.TOKEN_STRING] = "|c00999999"
+local tableColor = "|c00ff3333"
+colorTable["..."] = tableColor
+colorTable["{"] = tableColor
+colorTable["}"] = tableColor
+colorTable["["] = tableColor
+colorTable["]"] = tableColor
+local arithmeticColor = "|c00ff3333"
+colorTable["+"] = arithmeticColor
+colorTable["-"] = arithmeticColor
+colorTable["/"] = arithmeticColor
+colorTable["*"] = arithmeticColor
+colorTable[".."] = arithmeticColor
+local logicColor1 = "|c00ff3333"
+colorTable["=="] = logicColor1
+colorTable["<"] = logicColor1
+colorTable["<="] = logicColor1
+colorTable[">"] = logicColor1
+colorTable[">="] = logicColor1
+colorTable["~="] = logicColor1
+local logicColor2 = "|c004444ff"
+colorTable["and"] = logicColor2
+colorTable["or"] = logicColor2
+colorTable["not"] = logicColor2
+colorTable[0] = "|r"
+
 local customTextFrame
+local customTextFrameEditBox
 
 local function customTextFrameOnClose(widget)
+  FIP.disable(customTextFrameEditBox.editBox)
   GUI:Release(widget)
   customTextFrame = nil
+  customTextFrameEditBox = nil
 end
 
 function Addon:OpenCustomTextFrame(name, db, parametersString)
@@ -105,8 +142,10 @@ function Addon:OpenCustomTextFrame(name, db, parametersString)
   box:SetCallback("OnEnterPressed", function(widget, event, text)
     db[name] = text
   end)
+  FIP.enable(box.editBox, colorTable, 2)
   box:SetFocus()
   customTextFrame:AddChild(box)
+  customTextFrameEditBox = box
 end
 
 
