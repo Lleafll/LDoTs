@@ -405,7 +405,7 @@ local function addAuras(profileOptions, profileDB)
                 icon = GetItemIcon(value)
               end
               if icon then
-                auraDB.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
+                auraDB.iconOverride = string_match(icon, "Interface\\Icons\\(.+)") or string_match(icon, "Interface\\ICONS\\(.+)") or string_match(icon, "INTERFACE\\ICONS\\(.+)")
               end
             end
             Addon:Build()
