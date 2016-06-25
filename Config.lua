@@ -7,6 +7,7 @@ local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceCo
 ---------------
 local ACD = LibStub("AceConfigDialog-3.0")
 local ADB = LibStub("AceDB-3.0")
+local GUI = LibStub("AceGUI-3.0")
 local LSM = LibStub('LibSharedMedia-3.0')
 
 
@@ -18,6 +19,15 @@ local pairs = pairs
 local string_match = string.match
 local table_insert = table.insert
 local table_sort = table.sort
+
+
+
+---------------
+-- Constants --
+---------------
+local CONTAINER_WIDTH = 800
+local CONTAINER_HEIGHT = 750
+
 
 
 -------------
@@ -61,6 +71,43 @@ local defaultSettings = {
     }
   }
 }
+
+
+
+--------------------------------------
+-- Extra Frame for Custom Functions --
+--------------------------------------
+local customTextFrame
+
+local function customTextFrameOnClose(widget)
+  GUI:Release(widget)
+  customTextFrame = nil
+end
+
+function Addon:OpenCustomTextFrame(name, db, parametersString)
+  if customTextFrame then
+    customTextFrameOnClose(customTextFrame)
+  end
+  
+  customTextFrame = GUI:Create("Frame")
+  customTextFrame:SetTitle(name.." Custom Function")
+  customTextFrame:SetWidth(CONTAINER_WIDTH)
+  customTextFrame:SetWidth(CONTAINER_HEIGHT)
+  customTextFrame:SetCallback("OnClose", customTextFrameOnClose)
+  customTextFrame:SetLayout("Fill")
+  GUI:SetFocus(customTextFrame)
+  
+  local box = GUI:Create("MultiLineEditBox")
+  box:SetLabel("Passed parameters: "..parametersString)
+  if db[name] then
+    box:SetText(db[name])
+  end
+  box:SetCallback("OnEnterPressed", function(widget, event, text)
+    db[name] = text
+  end)
+  box:SetFocus()
+  customTextFrame:AddChild(box)
+end
 
 
 
@@ -608,6 +655,29 @@ local function addAuras(profileOptions, profileDB)
           step = 1,
           hidden = not auraDB.multitarget,
         },
+        customFunctionsheader = {
+          order = 25,
+          name = "Custom Functions",
+          type = "header"
+        },
+        Stacks = {
+          order = 26,
+          name = "Stacks",
+          type = "execute",
+          func = function() Addon:OpenCustomTextFrame("Stacks", auraDB, "self, stacks") end
+        },
+        OnEvent = {
+          order = 27,
+          name = "OnEvent",
+          type = "execute",
+          func = function() Addon:OpenCustomTextFrame("OnEvent", auraDB, "... (varargs passed by events, with self as first argument)") end
+        },
+        OnUpdate = {
+          order = 28,
+          name = "OnUpdate",
+          type = "execute",
+          func = function() Addon:OpenCustomTextFrame("OnUpdate", auraDB, "self, elapsed") end
+        },
         headerDelete = {
           order = 99,
           name = "Delete Aura",
@@ -797,8 +867,8 @@ LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName
 -----------------
 -- Options GUI --
 -----------------
-ACD:SetDefaultSize(addonName, 800, 750)
-local optionsFrame = LibStub("AceGUI-3.0"):Create("Frame")  -- Create own container so we can register OnClose
+ACD:SetDefaultSize(addonName, CONTAINER_WIDTH, CONTAINER_HEIGHT)
+local optionsFrame = GUI:Create("Frame")  -- Create own container so we can register OnClose
 optionsFrame:Hide()
 optionsFrame:SetCallback("OnClose", function()
   Addon.unlocked = nil

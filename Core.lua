@@ -13,11 +13,13 @@ local LSM = LibStub('LibSharedMedia-3.0')
 --------------
 -- Upvalues --
 --------------
+local assert = assert
 local GetSpellCharges = GetSpellCharges
 local GetSpellCooldown = GetSpellCooldown
 local GetSpellInfo = GetSpellInfo
 local GetTime = GetTime
 local IsSpellKnown = IsSpellKnown
+local loadstring = loadstring
 local math_ceil = math.ceil
 local SecureCmdOptionParse = SecureCmdOptionParse
 local string_match = string.match
@@ -687,6 +689,11 @@ local function initializeFrame(frame, db, profileName)
     
     frame:SetScript("OnEvent", frame.eventHandler)
     frame.eventHandler(frame)
+    if db.OnUpdate and db.OnUpdate ~= "" then
+      local onUpdateFunc = assert(loadstring("local self, elapsed = ...;"..db.OnUpdate))
+      frame:SetScript("OnUpdate", onUpdateFunc)
+      onUpdateFunc(frame, 100)
+    end
     
   end
 end
