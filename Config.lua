@@ -363,9 +363,9 @@ local function addAuras(profileOptions, profileDB)
           arrangeRows = 1,
           arrangeXDistance = 33,
           arrangeYDistance = 33,
-          anchor = "CENTER",
-          posX = 0,
-          posY = 0,
+          --anchor = "CENTER",
+          posX = 400,
+          posY = 300,
         }
         ACD:SelectGroup(addonName, info[#info-1], "New Icon")
       end
@@ -601,7 +601,7 @@ local function addAuras(profileOptions, profileDB)
           name = "Positioning",
           type = "header",
         },
-        anchor = {
+        --[[anchor = {
           order = 10,
           name = "Anchor",
           type = "select",
@@ -618,7 +618,7 @@ local function addAuras(profileOptions, profileDB)
             ["TOPRIGHT"] = "TOPRIGHT"
           },
           hidden = auraDB.multitarget
-        },
+        },]]--
         posX = {
           order = 11,
           name = "X Position",
@@ -651,7 +651,6 @@ local function addAuras(profileOptions, profileDB)
               for m = 1, auraDB.arrangeRows do
                 for n = 1, columns do
                   local numberString = tostring(i)
-                  auraDB[numberString].anchor = auraDB["1"].anchor
                   auraDB[numberString].posX = auraDB["1"].posX + xOffset
                   auraDB[numberString].posY = auraDB["1"].posY + yOffset
                   xOffset = xOffset + auraDB.arrangeXDistance
@@ -777,7 +776,7 @@ local function addAuras(profileOptions, profileDB)
               name = "Positioning",
               type = "header",
             },
-            anchor = {
+            --[[anchor = {
               order = 10,
               name = "Anchor",
               type = "select",
@@ -793,7 +792,7 @@ local function addAuras(profileOptions, profileDB)
                 ["TOPLEFT"] = "TOPLEFT",
                 ["TOPRIGHT"] = "TOPRIGHT"
               },
-            },
+            },]]--
             posX = {
               order = 11,
               name = "X Position",

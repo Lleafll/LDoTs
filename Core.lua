@@ -202,7 +202,6 @@ local function registerIconToGroup(icon, profileName, groupName)
     table_sort(icons, sortGroup[group.db.direction])
     icon:SetScript("OnShow", function() positionIcons(group) end)
     icon:SetScript("OnHide", function() positionIcons(group) end)
-    group:PositionIcons()
   else
     icon:SetScript("OnShow", nil)
     icon:SetScript("OnHide", nil)
@@ -333,18 +332,20 @@ end
 local function storeAuraFrame(frame)
   frame:Hide()
   frame:SetScript("OnEvent", nil)
+  frame:UnregisterAllEvents()
+  frame:SetScript("OnUpdate", nil)
+  frame:SetScript("OnShow", nil)
+  frame:SetScript("OnHide", nil)
+  frame.cooldown:SetCooldown(0, 0)
+  frame.chargeCooldown:SetCooldown(0, 0)
+  frame.texture:SetVertexColor(1, 1, 1)
+  frame.duration = nil
+  
   auraFrameCache[#auraFrameCache+1] = frame
 end
 
 local function wipeAuraFrames()
   for k, v in pairs(auraFrames) do
-    v:UnregisterAllEvents()
-    v:SetScript("OnUpdate", nil)
-    v.cooldown:SetCooldown(0, 0)
-    v.chargeCooldown:SetCooldown(0, 0)
-    v.texture:SetVertexColor(1, 1, 1)
-    v.duration = nil
-    
     storeAuraFrame(v)
     auraFrames[k] = nil
   end
