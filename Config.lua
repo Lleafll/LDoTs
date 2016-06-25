@@ -20,6 +20,7 @@ local pairs = pairs
 local string_match = string.match
 local table_insert = table.insert
 local table_sort = table.sort
+local tostring = tostring
 
 
 
@@ -385,7 +386,7 @@ local function addAuras(profileOptions, profileDB)
       order = order,
       name = auraName,
       type = "group",
-      icon = auraDB.iconOverride and auraDB.iconOverride ~= "" and "Interface\\Icons\\"..auraDB.iconOverride or "Interface\\Icons\\ability_garrison_orangebird",
+      icon = auraDB.iconOverride and auraDB.iconOverride ~= "" and (tonumber(auraDB.iconOverride) and auraDB.iconOverride or "Interface\\Icons\\"..auraDB.iconOverride) or "Interface\\Icons\\ability_garrison_orangebird",
       get = function(info)
         return auraDB[info[#info]]
       end,
@@ -444,7 +445,7 @@ local function addAuras(profileOptions, profileDB)
                 icon = GetItemIcon(value)
               end
               if icon then
-                auraDB.iconOverride = string_match(icon, "Interface\\Icons\\(.+)") or string_match(icon, "Interface\\ICONS\\(.+)") or string_match(icon, "INTERFACE\\ICONS\\(.+)")
+                auraDB.iconOverride = string_match(icon, "Interface\\Icons\\(.+)") or string_match(icon, "Interface\\ICONS\\(.+)") or string_match(icon, "INTERFACE\\ICONS\\(.+)") or tostring(icon)
               end
             end
             Addon:Build()

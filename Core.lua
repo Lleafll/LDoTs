@@ -605,7 +605,7 @@ local function initializeFrame(frame, db, profileName)
   
   local _, icon
   if db.iconOverride and db.iconOverride ~= "" then
-    icon = "Interface\\Icons\\"..db.iconOverride
+    icon = tonumber(db.iconOverride) or "Interface\\Icons\\"..db.iconOverride
   end
   if icon then
     frame.icon = true
