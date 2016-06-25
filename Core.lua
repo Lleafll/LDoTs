@@ -75,8 +75,7 @@ end
 local function onMouseUpHandler(self, button)
   if button == "LeftButton" then
     self:StopMovingOrSizing()
-    local _, _, anchor, posX, posY = self:GetPoint()
-    self.db.anchor = anchor
+    local posX, posY = self:GetRect()
     local UIScale = UIParent:GetScale()
     self.db.posX = math_ceil(posX / UIScale - 0.5)
     self.db.posY = math_ceil(posY / UIScale - 0.5)
@@ -150,7 +149,6 @@ local function positionIcons(self)
   end
   local UIScale = UIParent:GetScale()
   local firstIconDB = firstIcon.db
-  local anchor = firstIconDB.anchor
   local posX = firstIconDB.posX
   local posY = firstIconDB.posY
   local x = (posX + (firstIconDB.width % 2 > 0 and 0.5 or 0)) * UIScale
@@ -160,7 +158,7 @@ local function positionIcons(self)
     if icon:IsShown() then
       local db = icon.db
       icon:ClearAllPoints()
-      icon:SetPoint(anchor, x, y)
+      icon:SetPoint("BOTTOMLEFT", x, y)
       if direction == "Right" then
         x = x + (db.width + 1) * UIScale
       elseif direction == "Left" then
@@ -172,7 +170,6 @@ local function positionIcons(self)
       end
       
       if Addon.unlocked then
-        db.anchor = anchor
         db.posX = posX
         db.posY = posY
         if direction == "Right" then
@@ -616,9 +613,7 @@ local function initializeFrame(frame, db, profileName)
   local UIScale = UIParent:GetScale()
   frame:SetSize(width * UIScale, height * UIScale)
   frame:ClearAllPoints()
-  frame:SetPoint(db.anchor, posX * UIScale, posY * UIScale)
-  
-  registerIconToGroup(frame, profileName, db.parent)
+  frame:SetPoint("BOTTOMLEFT", posX * UIScale, posY * UIScale)
   
   local _, icon
   if db.iconOverride and db.iconOverride ~= "" then
@@ -743,6 +738,8 @@ local function initializeFrame(frame, db, profileName)
     end
     
   end
+  
+  registerIconToGroup(frame, profileName, db.parent)  -- Register at the end to avoid OnShow callbacks from initializing
 end
 
 local function buildFrames(profileDB)
@@ -783,6 +780,10 @@ function Addon:Build()
   wipeAuraFrames()
   buildFrames(self.db.class)
   buildFrames(self.db.global)
+  
+  for k, v in pairs(groupFrames) do
+    v:PositionIcons()
+  end
   
   self:ClearPandemicTimers()
 end
