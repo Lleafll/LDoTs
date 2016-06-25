@@ -50,7 +50,7 @@ local defaultSettings = {
     },
     options = {
       font = "Friz Quadrata TT",
-      borderPandemicColor = {r=0.51, b=0.00, g=0.24, a=1},
+      borderPandemicColor = {r=1, b=0, g=0, a=1},
     }
   },
   class = {
@@ -140,7 +140,10 @@ local function addGroups(profileOptions, profileDB)
       if db["New Group"] then
         print(addonName..": 'New Group' already exists")
       else
-        db["New Group"] = {}
+        db["New Group"] = {
+          groupType = "Group",
+          direction = "Right"
+        }
         ACD:SelectGroup(addonName, info[#info-1], "New Group")
       end
     end
@@ -167,7 +170,6 @@ local function addGroups(profileOptions, profileDB)
         Addon:Build()
       end,
       args = {
-        parent = buildParentGroupOption(profileDB, db, groupDB, 1.1),
         name = {
           order = 1,
           name = "Name",
@@ -186,6 +188,35 @@ local function addGroups(profileOptions, profileDB)
             selectFromTree(db, profileDB, groupDB)
             Addon:Build()
           end,
+        },
+        parent = buildParentGroupOption(profileDB, db, groupDB, 2),
+        groupType = {
+          order = 3,
+          name = "Type",
+          type = "select",
+          style = "dropdown",
+          values = {
+            ["Group"] = "Group",
+            ["Dynamic Group"] = "Dynamic Group"
+          }
+        },
+        direction = {
+          order = 4,
+          name = "Direction",
+          type = "select",
+          style = "dropdown",
+          hidden = groupDB.groupType ~= "Dynamic Group",
+          values = {
+            ["Left"] = "Left",
+            ["Right"] = "Right",
+            ["Up"] = "Up",
+            ["Down"] = "Down"
+          }
+        },
+        deleteGroupHeader = {
+          order = 99,
+          name = "Delete Group",
+          type = "header"
         },
         deleteGroup = {
           order = 100,
@@ -389,9 +420,23 @@ local function addAuras(profileOptions, profileDB)
           type = "toggle",
           hidden = auraDB.iconType ~= "Cooldown"
         },
+        headerVisibility = {
+          order = 3.3,
+          name = "Visibility",
+          type = "header",
+        },
+        visibility = {
+          order = 3.4,
+          name = "Visibility",
+          type = "input",
+          set = function(info, value)
+            auraDB.visibility = value
+            Addon:Build()
+          end,
+        },        
         headerPandemic = {
           order = 3.9,
-          name = "Pandemic Configuration",
+          name = "Pandemic",
           type = "header",
           hidden = auraDB.iconType ~= "Aura"
         },
@@ -431,11 +476,11 @@ local function addAuras(profileOptions, profileDB)
           name = "Show Stacks",
           type = "toggle",
         },
-        hideSwirl = {
+        --[[hideSwirl = {
           order = 4.6,
           name = "Hide Cooldown Swirl",
           type = "toggle",
-        },
+        },]]--
         height = {
           order = 5,
           name = "Icon Height",

@@ -19,10 +19,13 @@ local GetSpellInfo = GetSpellInfo
 local GetTime = GetTime
 local IsSpellKnown = IsSpellKnown
 local math_ceil = math.ceil
+local SecureCmdOptionParse = SecureCmdOptionParse
 local string_match = string.match
+local table_sort = table.sort
 local tonumber = tonumber
 local tostring = tostring
 local UnitAura = UnitAura
+local wipe = wipe
 
 
 
@@ -32,6 +35,8 @@ local UnitAura = UnitAura
 local auraFrames = {}
 local auraFrameCache = {}
 local generalDB
+local groupFrames = {}
+local groupFrameCache = {}
 
 
 
@@ -113,9 +118,122 @@ end
 
 
 
--------------------------------
--- Frame Factory and Caching --
--------------------------------
+-------------------------------------
+-- Group Frame Factory and Caching --
+-------------------------------------
+local sortGroup = {}
+
+sortGroup.Right = function(a, b)
+  return a.db.posX < b.db.posX
+end
+
+sortGroup.Left = function(a, b)
+  return a.db.posX > b.db.posX
+end
+
+sortGroup.Up = function(a, b)
+  return a.db.posY < b.db.posY
+end
+
+sortGroup.Down = function(a, b)
+  return a.db.posY > b.db.posY
+end
+
+local function positionIcons(self)
+  local firstIcon = self.icons[1]
+  if not firstIcon then
+    return
+  end
+  local UIScale = UIParent:GetScale()
+  local firstIconDB = firstIcon.db
+  local anchor = self.icons[1].db.anchor
+  local x = (firstIconDB.posX + (firstIconDB.width % 2 > 0 and 0.5 or 0)) * UIScale
+  local y = (firstIconDB.posY + (firstIconDB.height % 2 > 0 and 0.5 or 0)) * UIScale
+  local direction = self.db.direction
+  for k, icon in pairs(self.icons) do
+    if icon:IsShown() then
+      local db = icon.db
+      icon:ClearAllPoints()
+      icon:SetPoint(anchor, x, y)
+      if direction == "Right" then
+        x = x + (db.width + 1) * UIScale
+      elseif direction == "Left" then
+        x = x - (db.width + 1) * UIScale
+      elseif direction == "Up" then
+        y = y + (db.height + 1) * UIScale
+      elseif direction == "Down" then
+        y = y - (db.height + 1) * UIScale
+      end
+    end
+  end
+end
+
+local function lookupGroup(profileName, groupName)
+  for k, v in pairs(groupFrames) do
+    if v.db.name == groupName and v.profileName == profileName then
+      return v
+    end
+  end
+end
+
+local function registerIconToGroup(icon, profileName, groupName)
+  local group = lookupGroup(profileName, groupName)
+  if group then
+    local icons = group.icons
+    icons[#icons+1] = icon
+    table_sort(icons, sortGroup[group.db.direction])
+    icon:SetScript("OnShow", function() positionIcons(group) end)
+    icon:SetScript("OnHide", function() positionIcons(group) end)
+    group:PositionIcons()
+  else
+    icon:SetScript("OnShow", nil)
+    icon:SetScript("OnHide", nil)
+  end
+end
+
+local function createGroupFrame()
+  local frame = CreateFrame("Frame")
+  frame.PositionIcons = positionIcons
+  frame.RegisterIconToGroup = registerIconToGroup
+  frame.icons = {}
+  return frame
+end
+
+local function getGroupFrame()
+  local frame
+  
+  local groupFrameCacheLength = #groupFrameCache
+  if groupFrameCacheLength == 0 then
+    frame = createGroupFrame()
+  else
+    frame = groupFrameCache[groupFrameCacheLength]
+    groupFrameCache[groupFrameCacheLength] = nil
+  end
+  
+  groupFrames[#groupFrames+1] = frame
+  
+  return frame
+end
+
+local function storeGroupFrame(frame)
+  frame:Hide()
+  frame:SetScript("OnEvent", nil)
+  wipe(frame.icons)
+  groupFrameCache[#groupFrameCache+1] = frame
+end
+
+local function wipeGroupFrames()
+  for k, v in pairs(groupFrames) do
+    storeGroupFrame(v)
+    groupFrames[k] = nil
+  end
+end
+
+
+
+------------------------------------
+-- Icon Frame Factory and Caching --
+------------------------------------
 local backdrop = {
   bgFile = nil,
   edgeFile = LSM:Fetch('background', "Solid"),
@@ -213,6 +331,10 @@ end
 -- Aura Behavior --
 -------------------
 local function auraEventHandler(self, event, ...)
+  if not self.visible then
+    return
+  end
+  
   if event == "NAME_PLATE_UNIT_ADDED" or event == "PLAYER_TARGET_CHANGED"then
     self.duration = nil
     self.expires = nil
@@ -329,6 +451,10 @@ end
 -- Cooldown Behavior --
 -----------------------
 local function cooldownEventHandler(self, event, ...)
+  if not self.visible then
+    return
+  end
+  
   local db = self.db
   
   local start, duration, enable = GetSpellCooldown(db.spell)
@@ -383,10 +509,69 @@ end
 
 
 
+-----------------------
+-- Visibility Parser --
+-----------------------
+local function parseVisibility()
+  for _, frame in pairs(auraFrames) do
+    if frame.visibility then
+      local action = SecureCmdOptionParse(frame.visibility)
+      if action ~= "show" then
+        if frame.visible then
+          frame.visible = false
+          frame:Hide()
+        end
+      elseif not frame.visible then
+        frame.visible = true
+        frame.eventHandler(frame)
+      end
+    end
+  end
+end
+
+do
+  local commandParseTimer = CreateFrame("Frame")
+  
+  local totalElapsed = 0
+  commandParseTimer:SetScript("OnUpdate", function(self, elapsed)
+    totalElapsed = totalElapsed + elapsed
+    if totalElapsed > 0.1 then
+      parseVisibility()
+      totalElapsed = 0
+    end
+  end)
+  
+  -- Increase responsiveness
+  commandParseTimer:RegisterEvent("PLAYER_TARGET_CHANGED")
+  commandParseTimer:RegisterEvent("PLAYER_REGEN_DISABLED")
+  commandParseTimer:SetScript("OnEvent", parseVisibility)
+end
+
+
+
+------------
+-- Groups --
+------------
+local function initializeDynamicGroup(db, profileName)
+  local frame = getGroupFrame()
+  frame.db = db
+  frame.profileName = profileName
+end
+
+local function buildGroups(profileDB)
+  local db = profileDB.groups
+  for k, v in pairs(db) do
+    if v.groupType == "Dynamic Group" then
+      initializeDynamicGroup(v, profileDB.profile)
+    end
+  end
+end
+
+
 -----------
 -- Icons --
 -----------
-local function initializeFrame(frame, db)
+local function initializeFrame(frame, db, profileName)
   frame.db = db
   
   frame:Hide()
@@ -398,6 +583,8 @@ local function initializeFrame(frame, db)
   frame:SetSize(width * UIScale, height * UIScale)
   frame:ClearAllPoints()
   frame:SetPoint(db.anchor, posX * UIScale, posY * UIScale)
+  
+  registerIconToGroup(frame, profileName, db.parent)
   
   local _, icon
   if db.iconOverride and db.iconOverride ~= "" then
@@ -431,12 +618,17 @@ local function initializeFrame(frame, db)
   
   if Addon.unlocked then
     frame:Unlock()
+    frame.visibility = nil
+    frame.visible = true
     frame:SetScript("OnEvent", nil)
     if db.hide then
       frame.texture:Hide()
     end
   else
     frame:Lock()
+    
+    frame.visibility = db.visibility ~= "" and db.visibility or nil
+    frame.visible = true
     
     if db.iconType == "Aura" then
       local c = generalDB.borderPandemicColor
@@ -469,9 +661,7 @@ local function initializeFrame(frame, db)
         frame:RegisterEvent("UNIT_SPELL_HASTE")
       end
       
-      frame:SetScript("OnEvent", auraEventHandler)
-      
-      auraEventHandler(frame)
+      frame.eventHandler = auraEventHandler
       
     elseif db.iconType == "Cooldown" then
       local _, _, _, _, _, _, spellID = GetSpellInfo(db.spell)
@@ -485,26 +675,34 @@ local function initializeFrame(frame, db)
         if db.showOffCooldown then
           frame:Show()
         end
-        cooldownEventHandler(frame)
+        frame.eventHandler = cooldownEventHandler
+      else
+        frame.eventHandler = function() end  -- Dummy function for easier code
+        
       end
       
     end
+    
+    frame:SetScript("OnEvent", frame.eventHandler)
+    frame.eventHandler(frame)
+    
   end
 end
 
-local function buildFrames(db)
+local function buildFrames(profileDB)
+  local db = profileDB.auras
   for k, v in pairs(db) do
     if v.multitarget then
       for k2 = 1, v.multitargetCount do
         local v2 = v[tostring(k2)]
         if v2 and not v2.disable then
           setmetatable(v2, {__index = v})  -- Might be hacky and corrupt the database
-          initializeFrame(getAuraFrame(), v2)
+          initializeFrame(getAuraFrame(), v2, profileDB.profile)
         end
       end
     else
       if not v.disable then
-        initializeFrame(getAuraFrame(), v)
+        initializeFrame(getAuraFrame(), v, profileDB.profile)
       end
     end
   end
@@ -518,9 +716,13 @@ end
 function Addon:Build()
   generalDB = self.db.global.options
   
+  wipeGroupFrames()
+  buildGroups(self.db.class)
+  buildGroups(self.db.global)
+  
   wipeAuraFrames()
-  buildFrames(self.db.class.auras)
-  buildFrames(self.db.global.auras)
+  buildFrames(self.db.class)
+  buildFrames(self.db.global)
   
   self:ClearPandemicTimers()
 end
