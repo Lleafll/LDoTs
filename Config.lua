@@ -521,12 +521,17 @@ local function addAuras(profileOptions, profileDB)
           type = "header"
         },
         iconOverride = {
-          order = 4.45,
+          order = 4.5,
           name = "Icon",
           type = "input",
         },
+        desaturated = {
+          order = 4.6,
+          name = "Desaturate",
+          type = "toggle"
+        },
         showStacks = {
-          order = 4.5,
+          order = 4.7,
           name = "Show Stacks",
           type = "toggle",
         },

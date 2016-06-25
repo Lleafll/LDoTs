@@ -608,6 +608,7 @@ local function initializeFrame(frame, db, profileName)
   end
   frame.texture:SetTexture(icon)
   frame.texture:SetVertexColor(1, 1, 1)
+  frame.texture:SetDesaturated(db.desaturated)
   frame.texture:Show()
   
   frame.pandemicBorder:Hide()
