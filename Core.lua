@@ -146,7 +146,7 @@ local function positionIcons(self)
   end
   local UIScale = UIParent:GetScale()
   local firstIconDB = firstIcon.db
-  local anchor = self.icons[1].db.anchor
+  local anchor = firstIconDB.anchor
   local x = (firstIconDB.posX + (firstIconDB.width % 2 > 0 and 0.5 or 0)) * UIScale
   local y = (firstIconDB.posY + (firstIconDB.height % 2 > 0 and 0.5 or 0)) * UIScale
   local direction = self.db.direction
@@ -599,6 +599,8 @@ local function initializeFrame(frame, db, profileName)
   frame.texture:SetTexture(icon)
   frame.texture:SetVertexColor(1, 1, 1)
   frame.texture:Show()
+  
+  frame.pandemicBorder:Hide()
   
   if db.showStacks then
     frame.stacksString:Show()
