@@ -616,6 +616,8 @@ local function initializeFrame(frame, db, profileName)
   
   frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
   
+  frame:UnregisterAllEvents()
+  
   if Addon.unlocked then
     frame:Unlock()
     frame.visibility = nil
