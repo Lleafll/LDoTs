@@ -398,7 +398,12 @@ local function addAuras(profileOptions, profileDB)
             value = numberValue and numberValue or value
             auraDB.spell = value
             if not auraDB.iconOverride or auraDB.iconOverride == "" then
-              local _, _, icon = GetSpellInfo(value)
+              local _, icon
+              if auraDB.iconType == "Spell" or auraDB.iconType == "Aura" then
+                _, _, icon = GetSpellInfo(value)
+              elseif auraDB.iconType == "Item" then
+                icon = GetItemIcon(value)
+              end
               if icon then
                 auraDB.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
               end
@@ -413,7 +418,8 @@ local function addAuras(profileOptions, profileDB)
           style = "dropdown",
           values = {
             ["Aura"] = "Aura",
-            ["Cooldown"] = "Cooldown"
+            ["Spell"] = "Spell",
+            ["Item"] = "Item"
           }
         },
         unitID = {
@@ -459,13 +465,13 @@ local function addAuras(profileOptions, profileDB)
           order = 3.1,
           name = "Show Off Cooldown",
           type = "toggle",
-          hidden = auraDB.iconType ~= "Cooldown"
+          hidden = auraDB.iconType ~= "Spell" and auraDB.iconType ~= "Item"
         },
         checkUsability = {
           order = 3.2,
           name = "Check Usability",
           type = "toggle",
-          hidden = auraDB.iconType ~= "Cooldown"
+          hidden = auraDB.iconType ~= "Spell"
         },
         headerVisibility = {
           order = 3.3,

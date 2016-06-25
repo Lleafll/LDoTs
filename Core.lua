@@ -14,6 +14,7 @@ local LSM = LibStub('LibSharedMedia-3.0')
 -- Upvalues --
 --------------
 local assert = assert
+local GetItemInfo = GetItemInfo
 local GetSpellCharges = GetSpellCharges
 local GetSpellCooldown = GetSpellCooldown
 local GetSpellInfo = GetSpellInfo
@@ -459,9 +460,16 @@ local function cooldownEventHandler(self, event, ...)
   
   local db = self.db
   
-  local start, duration, enable = GetSpellCooldown(db.spell)
-  local gcdStart, gcdDuration = GetSpellCooldown(61304)
-  local stacks, maxStacks, stacksStart, stacksDuration = GetSpellCharges(db.spell)
+  local start, duration, enable
+  local gcdStart, gcdDuration
+  local stacks, maxStacks, stacksStart, stacksDuration
+  if db.iconType == "Spell" then
+    start, duration, enable = GetSpellCooldown(db.spell)
+    gcdStart, gcdDuration = GetSpellCooldown(61304)
+    stacks, maxStacks, stacksStart, stacksDuration = GetSpellCharges(db.spell)
+  elseif db.iconType == "Item" then
+    start, duration, enable = GetItemCooldown(self.itemID)
+  end
   
   if start or gcdStart or (stacks and stacks < maxStacks) then
     self:Show()
@@ -667,9 +675,9 @@ local function initializeFrame(frame, db, profileName)
       
       frame.eventHandler = auraEventHandler
       
-    elseif db.iconType == "Cooldown" then
+    elseif db.iconType == "Spell" then
       local _, _, _, _, _, _, spellID = GetSpellInfo(db.spell)
-      if spellID and IsSpellKnown(spellID) then
+      if spellID and (IsPlayerSpell(spellID) or IsSpellKnown(spellID)) then
         frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
         frame:RegisterEvent("SPELL_UPDATE_USABLE")
         if db.showStacks then
@@ -685,10 +693,27 @@ local function initializeFrame(frame, db, profileName)
         
       end
       
+    elseif db.iconType == "Item" then
+      local _, link = GetItemInfo(db.spell)
+      if link then
+        frame.itemID = tonumber(string_match(link, "item:(.-):"))
+        frame:RegisterEvent("BAG_UPDATE_COOLDOWN")
+        frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+        if db.showOffCooldown then
+          frame:Show()
+        else
+          frame:Hide()
+        end
+        frame.eventHandler = cooldownEventHandler
+      else
+        frame.eventHandler = function() end  -- Dummy function for easier code
+      end
+      
     end
     
     frame:SetScript("OnEvent", frame.eventHandler)
-    frame.eventHandler(frame)
+    frame:eventHandler()
+    
     if db.OnUpdate and db.OnUpdate ~= "" then
       local onUpdateFunc = assert(loadstring("local self, elapsed = ...;"..db.OnUpdate))
       frame:SetScript("OnUpdate", onUpdateFunc)
