@@ -855,7 +855,7 @@ local function addOptions(profileOptions, profileDB)
       },
       borderPandemicColor = {
         order = 11,
-        name = "In Pandemic Color",
+        name = "Pandemic Border Color",
         type = "color",
         hasAlpha = true,
         get = function()
