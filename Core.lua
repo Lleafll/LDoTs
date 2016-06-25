@@ -706,6 +706,10 @@ local function buildFrames(profileDB)
       end
     end
   end
+  
+  if not Addon.unlocked then
+    parseVisibility()
+  end
 end
 
 
