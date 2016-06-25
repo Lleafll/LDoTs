@@ -16,6 +16,7 @@ Libs\AceConfig-3.0\AceConfigCmd-3.0\AceConfigCmd-3.0.xml
 Libs\AceConfig-3.0\AceConfigDialog-3.0\AceConfigDialog-3.0.xml
 Libs\AceConfig-3.0\AceConfigRegistry-3.0\AceConfigRegistry-3.0.xml
 Libs\LibSharedMedia-3.0\lib.xml
+Libs\ForAllIndentsAndPurposes\ForAllIndentsAndPurposes.lua
 
 Config.lua
 Core.lua
