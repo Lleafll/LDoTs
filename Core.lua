@@ -151,8 +151,10 @@ local function positionIcons(self)
   local UIScale = UIParent:GetScale()
   local firstIconDB = firstIcon.db
   local anchor = firstIconDB.anchor
-  local x = (firstIconDB.posX + (firstIconDB.width % 2 > 0 and 0.5 or 0)) * UIScale
-  local y = (firstIconDB.posY + (firstIconDB.height % 2 > 0 and 0.5 or 0)) * UIScale
+  local posX = firstIconDB.posX
+  local posY = firstIconDB.posY
+  local x = (posX + (firstIconDB.width % 2 > 0 and 0.5 or 0)) * UIScale
+  local y = (posY + (firstIconDB.height % 2 > 0 and 0.5 or 0)) * UIScale
   local direction = self.db.direction
   for k, icon in pairs(self.icons) do
     if icon:IsShown() then
@@ -167,6 +169,21 @@ local function positionIcons(self)
         y = y + (db.height + 1) * UIScale
       elseif direction == "Down" then
         y = y - (db.height + 1) * UIScale
+      end
+      
+      if Addon.unlocked then
+        db.anchor = anchor
+        db.posX = posX
+        db.posY = posY
+        if direction == "Right" then
+          posX = posX + db.width + 1
+        elseif direction == "Left" then
+          posX = posX - db.width - 1
+        elseif direction == "Up" then
+          posY = posY + db.width + 1
+        elseif direction == "Down" then
+          posY = posY - db.width - 1
+        end
       end
     end
   end
