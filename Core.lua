@@ -19,6 +19,7 @@ local GetSpellCharges = GetSpellCharges
 local GetSpellCooldown = GetSpellCooldown
 local GetSpellInfo = GetSpellInfo
 local GetTime = GetTime
+local IsPlayerSpell = IsPlayerSpell
 local IsSpellKnown = IsSpellKnown
 local loadstring = loadstring
 local math_ceil = math.ceil
@@ -323,6 +324,13 @@ end
 
 local function wipeAuraFrames()
   for k, v in pairs(auraFrames) do
+    v:UnregisterAllEvents()
+    v:SetScript("OnUpdate", nil)
+    v.cooldown:SetCooldown(0, 0)
+    v.chargeCooldown:SetCooldown(0, 0)
+    v.texture:SetVertexColor(1, 1, 1)
+    v.duration = nil
+    
     storeAuraFrame(v)
     auraFrames[k] = nil
   end
@@ -471,7 +479,11 @@ local function cooldownEventHandler(self, event, ...)
     start, duration, enable = GetItemCooldown(self.itemID)
   end
   
-  if start or gcdStart or (stacks and stacks < maxStacks) then
+  if start == 0 and not db.showOffCooldown then
+    self:Hide()
+    return
+    
+  elseif start > 0 or gcdStart or (stacks and stacks < maxStacks) then
     self:Show()
     
     if stacks and stacks > 0 and stacks < maxStacks and (stacksStart ~= self.stacksStart or stacksDuration ~= self.stacksDuration) then
@@ -480,7 +492,7 @@ local function cooldownEventHandler(self, event, ...)
       self.stacksDuration = stacksDuration
     end
     
-    if not start or (gcdStart and start + duration < gcdStart + gcdDuration) then
+    if start == 0 or (gcdStart and start + duration < gcdStart + gcdDuration) then
       start = gcdStart
       duration = gcdDuration
     end
@@ -491,11 +503,6 @@ local function cooldownEventHandler(self, event, ...)
       if stacks and stacks == 0 and self.chargeCooldown:GetCooldownDuration() then
         self.chargeCooldown:SetCooldown(0, 0)
       end
-    end
-    
-  else
-    if not self.showOffCooldown then
-      self:Hide()
     end
     
   end
@@ -607,7 +614,6 @@ local function initializeFrame(frame, db, profileName)
     icon = "Interface\\Icons\\ability_garrison_orangebird"
   end
   frame.texture:SetTexture(icon)
-  frame.texture:SetVertexColor(1, 1, 1)
   frame.texture:SetDesaturated(db.desaturated)
   frame.texture:Show()
   
@@ -621,14 +627,10 @@ local function initializeFrame(frame, db, profileName)
   end
   
   frame.cooldown:SetDrawSwipe(not db.hideSwirl)
-  frame.cooldown:SetCooldown(0, 0)
   frame.chargeCooldown:SetDrawEdge(not db.hideSwirl)
-  frame.chargeCooldown:SetCooldown(0, 0)
   
   frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
-  
-  frame:UnregisterAllEvents()
-  
+    
   if Addon.unlocked then
     frame:Unlock()
     frame.visibility = nil
@@ -687,6 +689,8 @@ local function initializeFrame(frame, db, profileName)
         frame:SetScript("OnEvent", cooldownEventHandler)
         if db.showOffCooldown then
           frame:Show()
+        else
+          frame:Hide()
         end
         frame.eventHandler = cooldownEventHandler
       else
