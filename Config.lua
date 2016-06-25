@@ -429,8 +429,19 @@ local function addAuras(profileOptions, profileDB)
             Addon:Build()
           end,
         },
+        iconType = {
+          order = 1.1,
+          name = "Icon Type",
+          type = "select",
+          style = "dropdown",
+          values = {
+            ["Aura"] = "Aura",
+            ["Spell"] = "Spell",
+            ["Item"] = "Item"
+          }
+        },
         spell = {
-          order = 1,
+          order = 1.2,
           name = "Spell",
           type = "input",
           set = function(info, value)
@@ -450,17 +461,6 @@ local function addAuras(profileOptions, profileDB)
             end
             Addon:Build()
           end,
-        },
-        iconType = {
-          order = 1.1,
-          name = "Icon Type",
-          type = "select",
-          style = "dropdown",
-          values = {
-            ["Aura"] = "Aura",
-            ["Spell"] = "Spell",
-            ["Item"] = "Item"
-          }
         },
         unitID = {
           order = 2,
