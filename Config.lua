@@ -2,6 +2,7 @@ local addonName, addonTable = ...
 local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
 
 
+
 ---------------
 -- Libraries --
 ---------------
@@ -10,6 +11,7 @@ local ADB = LibStub("AceDB-3.0")
 local FIP = IndentationLib
 local GUI = LibStub("AceGUI-3.0")
 local LSM = LibStub('LibSharedMedia-3.0')
+
 
 
 --------------
@@ -21,6 +23,7 @@ local string_match = string.match
 local table_insert = table.insert
 local table_sort = table.sort
 local tostring = tostring
+local wipe = wipe
 
 
 
@@ -48,6 +51,7 @@ local function pairsByKeys(t, f)  -- https://www.lua.org/pil/19.3.html
   end
   return iter
 end
+
 
 
 ----------------------
@@ -356,7 +360,6 @@ local function addGroups(profileOptions, profileDB)
       }
     }
     
-    profileOptions[groupName] = groupOptions.args
     groupPool[profileDB.profile][groupName] = groupOptions
     order = order + 1
   end
@@ -994,7 +997,6 @@ local function options()
   -- Global
   addGroups(optionsBaseTbl.args.global.args, Addon.db.global)
   addAuras(optionsBaseTbl.args.global.args, Addon.db.global)
-  
   -- Options
   addOptions(optionsBaseTbl.args, Addon.db.global)
   
@@ -1002,6 +1004,7 @@ local function options()
 end
 
 LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, "/"..addonName)
+
 
 
 -----------------
@@ -1020,6 +1023,7 @@ function Addon:Options()
 end
 
 
+
 ------------------
 -- Chat Command --
 ------------------
@@ -1033,6 +1037,7 @@ function Addon:HandleChatCommand(input)
 end
 
 Addon:RegisterChatCommand(addonName, "HandleChatCommand")
+
 
 
 --------------------
