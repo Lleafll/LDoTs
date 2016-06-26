@@ -327,7 +327,7 @@ local function addGroups(profileOptions, profileDB)
           order = 5,
           name = "X Position",
           type = "range",
-          min = -math_ceil(GetScreenWidth()),
+          min = 0,
           max = math_ceil(GetScreenWidth()),
           step = 1,
           hidden = groupDB.groupType ~= "Dynamic Group"
@@ -336,7 +336,7 @@ local function addGroups(profileOptions, profileDB)
           order = 6,
           name = "Y Position",
           type = "range",
-          min = -math_ceil(GetScreenHeight()),
+          min = 0,
           max = math_ceil(GetScreenHeight()),
           step = 1,
           hidden = groupDB.groupType ~= "Dynamic Group"
@@ -669,7 +669,7 @@ local function addAuras(profileOptions, profileDB)
           order = 11,
           name = "X Position",
           type = "range",
-          min = -math_ceil(GetScreenWidth()),
+          min = 0,
           max = math_ceil(GetScreenWidth()),
           step = 1,
           hidden = auraDB.multitarget
@@ -678,7 +678,7 @@ local function addAuras(profileOptions, profileDB)
           order = 12,
           name = "Y Position",
           type = "range",
-          min = -math_ceil(GetScreenHeight()),
+          min = 0,
           max = math_ceil(GetScreenHeight()),
           step = 1,
           hidden = auraDB.multitarget
@@ -843,7 +843,7 @@ local function addAuras(profileOptions, profileDB)
               order = 11,
               name = "X Position",
               type = "range",
-              min = -math_ceil(GetScreenWidth()),
+              min = 0,
               max = math_ceil(GetScreenWidth()),
               step = 1,
             },
@@ -851,7 +851,7 @@ local function addAuras(profileOptions, profileDB)
               order = 12,
               name = "Y Position",
               type = "range",
-              min = -math_ceil(GetScreenHeight()),
+              min = 0,
               max = math_ceil(GetScreenHeight()),
               step = 1,
             }
