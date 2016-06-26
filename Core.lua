@@ -673,7 +673,7 @@ function Addon:InitializeFrame(frame, db, profileName)
   
   frame.pandemicBorder:Hide()
   
-  if db.showStacks and not db.hide then
+  if db.showStacks and not (self.unlocked and db.hide) then
     frame.stacksString:Show()
     frame.stacksString:SetFont(LSM:Fetch("font", generalDB.font), generalDB.fontSize, "OUTLINE")
     frame.stacksString:SetPoint(generalDB.stacksAnchor, generalDB.stacksPosX, generalDB.stacksPosY)
