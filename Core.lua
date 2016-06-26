@@ -748,8 +748,10 @@ function Addon:InitializeFrame(frame, db, profileName)
           frame:Hide()
         end
         frame.eventHandler = cooldownEventHandler
+        
       else
         frame.eventHandler = function() end  -- Dummy function for easier code
+        frame:Hide()
         
       end
       
