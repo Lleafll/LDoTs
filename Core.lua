@@ -521,7 +521,7 @@ local function cooldownEventHandler(self, event, ...)
     start, duration, enable = GetItemCooldown(self.itemID)
   end
   
-  if start == 0 and not db.showOffCooldown then
+  if not db.showOffCooldown and (start == 0 or start == gcdStart) then
       self:Hide()
     return
     
