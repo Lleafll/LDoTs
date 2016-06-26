@@ -531,6 +531,12 @@ local function addAuras(profileOptions, profileDB)
           type = "toggle",
           hidden = auraDB.iconType ~= "Spell" and auraDB.iconType ~= "Item"
         },
+        showMissing = {
+          order = 3.1,
+          name = "Show When Missing",
+          type = "toggle",
+          hidden = auraDB.iconType ~= "Aura"
+        },
         checkUsability = {
           order = 3.2,
           name = "Check Usability",
@@ -851,7 +857,7 @@ local function addOptions(profileOptions, profileDB)
   profileOptions.options = {
     order = 12,
     type = "group",
-    name = "Options",
+    name = "General Options",
     get = function(info)
       return db[info[#info]]
     end,
