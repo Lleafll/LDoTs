@@ -740,6 +740,7 @@ function Addon:InitializeFrame(frame, db, profileName)
         frame:RegisterEvent("SPELL_UPDATE_USABLE")
         if db.showStacks then
           frame:RegisterEvent("SPELL_UPDATE_CHARGES")
+          frame.stacksString:SetText(GetSpellCharges(db.spell))
         end
         frame:SetScript("OnEvent", cooldownEventHandler)
         if db.showOffCooldown then
