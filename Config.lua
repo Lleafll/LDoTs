@@ -62,6 +62,10 @@ local defaultSettings = {
     },
     options = {
       font = "Friz Quadrata TT",
+      fontSize = 12,
+      stacksAnchor = "BOTTOMRIGHT",
+      stacksPosX = -1,
+      stacksPosY = 1,
       borderPandemicColor = {r=1, b=0, g=0, a=1},
     }
   },
@@ -868,13 +872,59 @@ local function addOptions(profileOptions, profileDB)
         dialogControl = "LSM30_Font",
         values = LSM:HashTable("font")
       },
-      bordersHeader = {
+      fontSize = {
+        order = 2,
+        name = "Font Size",
+        type = "range",
+        min = 1,
+        softMax = 32,
+        step = 1
+      },
+      stacksHeader = {
         order = 10,
+        name = "Stacks/Charges",
+        type = "header"
+      },
+      stacksAnchor = {
+        order = 11,
+        name = "Anchor",
+        type = "select",
+        style = "dropdown",
+        values = {
+          ["CENTER"] = "CENTER",
+          ["BOTTOM"] = "BOTTOM",
+          ["TOP"] = "TOP",
+          ["LEFT"] = "LEFT",
+          ["RIGHT"] = "RIGHT",
+          ["BOTTOMLEFT"] = "BOTTOMLEFT",
+          ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
+          ["TOPLEFT"] = "TOPLEFT",
+          ["TOPRIGHT"] = "TOPRIGHT"
+        },
+      },
+      stacksPosX = {
+        order = 12,
+        name = "X Offset",
+        type = "range",
+        softMin = -32,
+        softMax = 32,
+        step = 1,
+      },
+      stacksPosY = {
+        order = 13,
+        name = "Y Offset",
+        type = "range",
+        softMin = -32,
+        softMax = 32,
+        step = 1,
+      },
+      bordersHeader = {
+        order = 20,
         name = "Borders",
         type = "header",
       },
       borderPandemicColor = {
-        order = 11,
+        order = 21,
         name = "Pandemic Border Color",
         type = "color",
         hasAlpha = true,

@@ -311,7 +311,6 @@ local function createAuraFrame()
   frame.stacksStringParent = CreateFrame("Frame", nil, frame)
   frame.stacksStringParent:SetAllPoints()
   frame.stacksString = frame.stacksStringParent:CreateFontString()
-  frame.stacksString:SetPoint("BOTTOMRIGHT", 0, 1)
   
   frame.pandemicBorder = CreateFrame("Frame", nil, frame)
   frame.pandemicBorder:SetAllPoints()
@@ -618,7 +617,7 @@ local function initializeDynamicGroup(db, profileName)
     dragger.texture:Show()
     dragger.pandemicBorder:Hide()
     dragger.stacksString:Hide()
-    dragger.nameString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
+    dragger.nameString:SetFont(LSM:Fetch("font", generalDB.font), generalDB.fontSize, "OUTLINE")
     dragger.visible = true
     dragger.visibility = nil
     dragger:Unlock()
@@ -666,9 +665,11 @@ local function initializeFrame(frame, db, profileName)
   
   frame.pandemicBorder:Hide()
   
-  if db.showStacks then
+  if db.showStacks and not db.hide then
     frame.stacksString:Show()
-    frame.stacksString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
+    frame.stacksString:SetFont(LSM:Fetch("font", generalDB.font), generalDB.fontSize, "OUTLINE")
+    frame.stacksString:SetPoint(generalDB.stacksAnchor, generalDB.stacksPosX, generalDB.stacksPosY)
+    frame.stacksString:SetText("1")
   else
     frame.stacksString:Hide()
   end
@@ -676,7 +677,7 @@ local function initializeFrame(frame, db, profileName)
   frame.cooldown:SetDrawSwipe(not db.hideSwirl)
   frame.chargeCooldown:SetDrawEdge(not db.hideSwirl)
   
-  frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), 8, "OUTLINE")
+  frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), generalDB.fontSize, "OUTLINE")
     
   if Addon.unlocked then
     frame:Unlock()
