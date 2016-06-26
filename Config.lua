@@ -574,7 +574,7 @@ local function addAuras(profileOptions, profileDB)
           style = "dropdown",
           values = function()
             local tbl = {
-              ["Show"] = "show"
+              ["show"] = "Show"
             }
             for k, v in pairs(Addon.db.global.visibilityTemplates) do
               tbl[k] = k
