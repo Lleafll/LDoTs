@@ -686,7 +686,8 @@ function Addon:InitializeFrame(frame, db, profileName)
   frame.chargeCooldown:SetDrawEdge(not db.hideSwirl)
   
   frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), generalDB.fontSize, "OUTLINE")
-    
+  frame.nameString:Hide()
+  
   if Addon.unlocked then
     frame:Unlock()
     frame.visible = true
@@ -696,7 +697,7 @@ function Addon:InitializeFrame(frame, db, profileName)
   else
     frame:Lock()
     
-    frame.visibility = db.visibility ~= "" and db.visibility or nil
+    frame.visibility = self.db.global.visibilityTemplates[db.visibility] or ""
     frame.visible = true
     
     if db.iconType == "Aura" then
@@ -771,6 +772,9 @@ function Addon:InitializeFrame(frame, db, profileName)
       else
         frame.eventHandler = function() end  -- Dummy function for easier code
       end
+      
+    else
+      frame.eventHandler = function() end  -- Dummy function for easier code
       
     end
     

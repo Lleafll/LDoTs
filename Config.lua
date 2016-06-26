@@ -71,7 +71,9 @@ local defaultSettings = {
       stacksPosX = -1,
       stacksPosY = 1,
       borderPandemicColor = {r=1, b=0, g=0, a=1},
-    }
+    },
+    visibilityTemplates = {
+    },
   },
   class = {
     profile = "class",
@@ -406,6 +408,7 @@ local function addAuras(profileOptions, profileDB)
           --anchor = "CENTER",
           posX = GetScreenWidth() / 2,
           posY = GetScreenHeight() / 2,
+          visibility = "show"
         }
         ACD:SelectGroup(addonName, info[#info-1], "New Icon")
       end
@@ -567,13 +570,22 @@ local function addAuras(profileOptions, profileDB)
         visibility = {
           order = 3.4,
           name = "Visibility",
-          type = "input",
-          width = "full",
+          type = "select",
+          style = "dropdown",
+          values = function()
+            local tbl = {
+              ["Show"] = "show"
+            }
+            for k, v in pairs(Addon.db.global.visibilityTemplates) do
+              tbl[k] = k
+            end
+            return tbl
+          end,
           set = function(info, value)
             auraDB.visibility = value
             Addon:Build()
           end,
-        },        
+        },
         headerPandemic = {
           order = 3.9,
           name = "Pandemic",
@@ -961,6 +973,91 @@ local function addOptions(profileOptions, profileDB)
       },
     }
   }
+  
+  profileOptions.visibilityTemplates = {
+    order = 13,
+    name = "Visibility Templates",
+    type = "group",
+    get = function(info)
+      return db[info[#info]]
+    end,
+    set = function(info, value)
+      db[info[#info]] = value
+      Addon:Build()
+    end,
+    args = {
+      addTemplate = {
+        order = 1,
+        type = "execute",
+        name = "Add Template",
+        func = function()
+          if profileDB.visibilityTemplates["New Template"] then
+            print(addonName..": 'New Template' already exists.")
+          else
+            profileDB.visibilityTemplates["New Template"] = ""
+          end
+        end
+      }
+    }
+  }
+  
+  local templatesDB = profileDB.visibilityTemplates
+  local order = #profileOptions.visibilityTemplates.args + 1
+  for name, command in pairsByKeys(templatesDB) do
+    profileOptions.visibilityTemplates.args[name] = {
+      order = order,
+      name = name,
+      type = "group",
+      args = {
+        name = {
+          order = 1,
+          name = "Name",
+          type = "input",
+          validate = function(info, value)
+            return templatesDB[value] and (addonName..": '"..value.."' already exists") or true
+          end,
+          get = function(info)
+            return name
+          end,
+          set = function(info, value)
+            templatesDB[value] = templatesDB[name]
+            templatesDB[name] = nil
+          end,
+        },
+        newline = {
+          order = 3,
+          name = "",
+          type = "description",
+          width = "full"
+        },
+        command = {
+          order = 11,
+          name = "Command",
+          type = "input",
+          width = "full",
+          set = function(info, value)
+            templatesDB[name] = value
+            Addon:Build()
+          end,
+          get = function()
+            return command
+          end
+        },
+        delete = {
+          order = 21,
+          name = "Delete Template",
+          type = "execute",
+          func = function()
+            templatesDB[name] = nil
+          end,
+          confirm = true,
+          confirmText = "Delete "..name.."?",
+        },
+      }      
+    }
+    
+    order = order + 1
+  end
 end
 
 local optionsBaseTbl = {
