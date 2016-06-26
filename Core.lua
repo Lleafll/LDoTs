@@ -733,8 +733,9 @@ function Addon:InitializeFrame(frame, db, profileName)
       frame.eventHandler = auraEventHandler
       
     elseif db.iconType == "Spell" then
-      local _, _, _, _, _, _, spellID = GetSpellInfo(db.spell)
-      if spellID and (IsPlayerSpell(spellID) or IsSpellKnown(spellID)) then
+      --local _, _, _, _, _, _, spellID = GetSpellInfo(db.spell)
+      --if spellID and (IsPlayerSpell(spellID) or IsSpellKnown(spellID) or IsSpellKnown(spellID, true)) then
+      if GetSpellInfo(db.spell) then
         frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
         frame:RegisterEvent("SPELL_UPDATE_USABLE")
         if db.showStacks then
