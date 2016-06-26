@@ -255,7 +255,7 @@ local function storeGroupFrame(frame)
   groupFrameCache[#groupFrameCache+1] = frame
 end
 
-local function wipeGroupFrames()
+function Addon:WipeGroupFrames()
   for k, v in pairs(groupFrames) do
     storeGroupFrame(v)
     groupFrames[k] = nil
@@ -363,7 +363,7 @@ local function storeAuraFrame(frame)
   auraFrameCache[#auraFrameCache+1] = frame
 end
 
-local function wipeAuraFrames()
+function Addon:WipeAuraFrames()
   for k, v in pairs(auraFrames) do
     storeAuraFrame(v)
     auraFrames[k] = nil
@@ -611,13 +611,13 @@ end
 ------------
 -- Groups --
 ------------
-local function initializeDynamicGroup(db, profileName)
+function Addon:InitializeDynamicGroup(db, profileName)
   local frame = getGroupFrame()
   frame.db = db
   frame.profileName = profileName
   frame:Show()
   
-  if Addon.unlocked then
+  if self.unlocked then
     local dragger = getAuraFrame()
     dragger.db = db
     dragger:SetSize(32, 32)
@@ -634,11 +634,11 @@ local function initializeDynamicGroup(db, profileName)
   end
 end
 
-local function buildGroups(profileDB)
+function Addon:BuildGroups(profileDB)
   local db = profileDB.groups
   for k, v in pairs(db) do
     if v.groupType == "Dynamic Group" then
-      initializeDynamicGroup(v, profileDB.profile)
+      self:InitializeDynamicGroup(v, profileDB.profile)
     end
   end
 end
@@ -647,7 +647,7 @@ end
 -----------
 -- Icons --
 -----------
-local function initializeFrame(frame, db, profileName)
+function Addon:InitializeFrame(frame, db, profileName)
   frame.db = db
   
   frame:Show()
@@ -781,10 +781,13 @@ local function initializeFrame(frame, db, profileName)
     
   end
   
-  registerIconToGroup(frame, profileName, db.parent)  -- Register at the end to avoid OnShow callbacks from initializing
+  local dynamicParent = self:GetUltimateDynamicGroupParentDB(db, profileName)
+  if dynamicParent then
+    registerIconToGroup(frame, profileName, dynamicParent)  -- Register at the end to avoid OnShow callbacks from initializing
+  end
 end
 
-local function buildFrames(profileDB)
+function Addon:BuildFrames(profileDB)
   local db = profileDB.auras
   for k, v in pairs(db) do
     if v.multitarget then
@@ -792,12 +795,12 @@ local function buildFrames(profileDB)
         local v2 = v[tostring(k2)]
         if v2 and not v2.disable then
           setmetatable(v2, {__index = v})  -- Might be hacky and corrupt the database
-          initializeFrame(getAuraFrame(), v2, profileDB.profile)
+          self:InitializeFrame(getAuraFrame(), v2, profileDB.profile)
         end
       end
     else
       if not v.disable then
-        initializeFrame(getAuraFrame(), v, profileDB.profile)
+        self:InitializeFrame(getAuraFrame(), v, profileDB.profile)
       end
     end
   end
@@ -815,14 +818,14 @@ end
 function Addon:Build()
   generalDB = self.db.global.options
   
-  wipeGroupFrames()
-  wipeAuraFrames()
+  self:WipeGroupFrames()
+  self:WipeAuraFrames()
   
-  buildGroups(self.db.class)
-  buildGroups(self.db.global)
+  self:BuildGroups(self.db.class)
+  self:BuildGroups(self.db.global)
   
-  buildFrames(self.db.class)
-  buildFrames(self.db.global)
+  self:BuildFrames(self.db.class)
+  self:BuildFrames(self.db.global)
   
   for k, v in pairs(groupFrames) do
     v:PositionIcons()

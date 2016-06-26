@@ -167,16 +167,29 @@ end
 local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
 local renamedGroup = {}
 
-local function getGroupParent(optionsParent, groupDB)
+local function getGroupParent(profileName, groupDB)
   local groupParent
   if groupDB.parent then
-    groupParent = groupPool[optionsParent][groupDB.parent] and groupPool[optionsParent][groupDB.parent].args
+    groupParent = groupPool[profileName][groupDB.parent] and groupPool[profileName][groupDB.parent].args
   end
   if not groupParent then
-    groupParent = groupPool[optionsParent]["Root"]
+    groupParent = groupPool[profileName]["Root"]
     groupDB.parent = "Root"
   end
   return groupParent
+end
+
+function Addon:GetUltimateDynamicGroupParentDB(iconDB, profileName)
+  local profileGroups = self.db[profileName].groups
+  local dynamicGroupParentName
+  local groupParentName = iconDB.parent
+  while groupParentName ~= "Root" do
+    if profileGroups[groupParentName].groupType == "Dynamic Group" then
+      dynamicGroupParentName = groupParentName
+    end
+    groupParentName = profileGroups[groupParentName].parent
+  end
+  return dynamicGroupParentName
 end
 
 local function selectFromTree(parentDB, profileDB, db)
@@ -218,9 +231,9 @@ end
 local function addGroups(profileOptions, profileDB)
   local db = profileDB.groups
   local order = #profileOptions + 1
-  groupPool[profileOptions] = {}
-  groupPool[profileOptions]["Root"] = profileOptions
-  renamedGroup[profileOptions] = renamedGroup[profileOptions] or {}
+  groupPool[profileDB.profile] = {}
+  groupPool[profileDB.profile]["Root"] = profileOptions
+  renamedGroup[profileDB.profile] = renamedGroup[profileDB.profile] or {}
   
   -- Group creation execute widget
   profileOptions.newGroup = {
@@ -247,8 +260,8 @@ local function addGroups(profileOptions, profileDB)
   -- Group options creation
   for groupName, groupDB in pairsByKeys(db) do
     -- Check if parent group name has changed
-    if renamedGroup[profileOptions].old == groupDB.parent then
-      groupDB.parent = renamedGroup[profileOptions].new
+    if renamedGroup[profileDB.profile].old == groupDB.parent then
+      groupDB.parent = renamedGroup[profileDB.profile].new
     end
     
     local groupOptions = {
@@ -274,7 +287,7 @@ local function addGroups(profileOptions, profileDB)
             return groupName
           end,
           set = function(info, value)
-            renamedGroup[profileOptions] = {old = groupName, new = value}
+            renamedGroup[profileDB.profile] = {old = groupName, new = value}
             groupDB.name = value
             db[value] = groupDB
             db[groupName] = nil
@@ -344,13 +357,13 @@ local function addGroups(profileOptions, profileDB)
     }
     
     profileOptions[groupName] = groupOptions.args
-    groupPool[profileOptions][groupName] = groupOptions
+    groupPool[profileDB.profile][groupName] = groupOptions
     order = order + 1
   end
   
   -- Group options nesting
   for groupName, groupDB in pairsByKeys(db) do
-    getGroupParent(profileOptions, groupDB)[groupName] = groupPool[profileOptions][groupName]
+    getGroupParent(profileDB.profile, groupDB)[groupName] = groupPool[profileDB.profile][groupName]
   end
 end
 
@@ -400,12 +413,12 @@ local function addAuras(profileOptions, profileDB)
   
   for auraName, auraDB in pairsByKeys(db) do
     -- Check if parent group name has changed
-    if renamedGroup[profileOptions].old == auraDB.parent then
-      auraDB.parent = renamedGroup[profileOptions].new
+    if renamedGroup[profileDB.profile].old == auraDB.parent then
+      auraDB.parent = renamedGroup[profileDB.profile].new
     end
     
     -- Get parent group according to db and add aura to it
-    local groupParent = getGroupParent(profileOptions, auraDB)
+    local groupParent = getGroupParent(profileDB.profile, auraDB)
     groupParent[auraName] = {
       order = order,
       name = auraName,
@@ -848,7 +861,7 @@ local function addAuras(profileOptions, profileDB)
   end
     
   -- Nil name check for renamed groups since we iterated over all auras
-  renamedGroup[profileOptions] = nil
+  renamedGroup[profileDB.profile] = nil
 end
 
 local function addOptions(profileOptions, profileDB)
