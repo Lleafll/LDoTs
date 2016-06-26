@@ -482,7 +482,7 @@ local function addAuras(profileOptions, profileDB)
         },
         spell = {
           order = 1.2,
-          name = "Spell",
+          name = auraDB.iconType or "",
           type = "input",
           set = function(info, value)
             local numberValue = tonumber(value)
