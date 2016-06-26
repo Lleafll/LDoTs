@@ -234,7 +234,7 @@ end
 
 local function addGroups(profileOptions, profileDB)
   local db = profileDB.groups
-  local order = #profileOptions + 1
+  local order = #profileOptions + 1000  -- Insert Groups after icons
   groupPool[profileDB.profile] = {}
   groupPool[profileDB.profile]["Root"] = profileOptions
   renamedGroup[profileDB.profile] = renamedGroup[profileDB.profile] or {}
