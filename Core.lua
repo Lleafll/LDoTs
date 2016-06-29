@@ -511,21 +511,19 @@ local function cooldownEventHandler(self, event, ...)
   local db = self.db
   
   local start, duration, enable
-  local gcdStart, gcdDuration
   local stacks, maxStacks, stacksStart, stacksDuration
   if db.iconType == "Spell" then
     start, duration, enable = GetSpellCooldown(db.spell)
-    gcdStart, gcdDuration = GetSpellCooldown(61304)
     stacks, maxStacks, stacksStart, stacksDuration = GetSpellCharges(db.spell)
   elseif db.iconType == "Item" then
     start, duration, enable = GetItemCooldown(self.itemID)
   end
   
-  if not db.showOffCooldown and (start == 0 or start == gcdStart) then
-      self:Hide()
+  if not db.showOffCooldown and (start == 0 or duration <= 1.5) then
+    self:Hide()
     return
     
-  elseif start > 0 or gcdStart or (stacks and stacks < maxStacks) then
+  else
     self:Show()
     
     if stacks and stacks > 0 and stacks < maxStacks and (stacksStart ~= self.stacksStart or stacksDuration ~= self.stacksDuration) then
@@ -534,10 +532,6 @@ local function cooldownEventHandler(self, event, ...)
       self.stacksDuration = stacksDuration
     end
     
-    if start == 0 or (gcdStart and start + duration < gcdStart + gcdDuration) then
-      start = gcdStart
-      duration = gcdDuration
-    end
     if start ~= self.start or duration ~= self.duration then
       self.cooldown:SetCooldown(start, duration)
       self.start = start
@@ -547,22 +541,19 @@ local function cooldownEventHandler(self, event, ...)
       end
     end
     
-  end
-  
-  if self:IsShown() then
     if db.checkUsability then
-      local usable = IsUsableSpell(db.spell)
-      if usable then
+      if IsUsableSpell(db.spell) then
         self.texture:SetVertexColor(1, 1, 1)
       else
         self.texture:SetVertexColor(0.25, 0.25, 0.25)
       end
-      self.usable = usable
     end
+    
     if db.showStacks and stacks ~= self.stacks then
       self.stacksString:SetText(stacks)
       self.stacks = stacks
     end
+    
   end
 end
 
@@ -697,7 +688,7 @@ function Addon:InitializeFrame(frame, db, profileName)
   else
     frame:Lock()
     
-    frame.visibility = self.db.global.visibilityTemplates[db.visibility] or ""
+    frame.visibility = self.db.global.visibilityTemplates[db.visibility]
     frame.visible = true
     
     if db.iconType == "Aura" then
