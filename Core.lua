@@ -425,7 +425,7 @@ local function auraEventHandler(self, event, ...)
       end
     end
   
-    if duration ~= self.duration or expires ~= self.expires or pandemic ~= self.pandemic or inPandemic ~= self.inPandemic then
+    if duration ~= self.duration or expires ~= self.expires or pandemic ~= self.pandemic or inPandemic ~= self.inPandemic or duration == 0 then
       self:Show()
       
       if not self.icon then
