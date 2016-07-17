@@ -36,6 +36,14 @@ local CONTAINER_HEIGHT = 750
 
 
 
+---------------
+-- Variables --
+---------------
+local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
+local renamedGroup = {}
+
+
+
 -------------
 -- Utility --
 -------------
@@ -88,10 +96,45 @@ local defaultSettings = {
 
 
 
---------------
--- New Icon --
---------------
-local function addIcon(profileName, profileDB, auraDB)
+--------------------
+-- New Icon/Group --
+--------------------
+local function addGroupToDB(profileName, profileDB, groupDB, parent)
+  local groupName
+  if groupDB then
+    groupName = groupDB.name
+  else
+    groupName = "New Group"
+  end
+  
+  if profileDB[groupName] then
+    local i = 2
+    while profileDB[groupName..i] do
+      i = i + 1
+    end
+    groupName = groupName..i
+  end
+  
+  if auraDB then
+    profileDB[groupName] = groupDB
+  else
+    profileDB[groupName] = {
+      groupType = "Group",
+      direction = "Right",
+      posX = GetScreenWidth() / 2,
+      posY = GetScreenHeight() / 2
+    }
+  end
+  
+  profileDB[groupName].parent = parent or "Root"
+  profileDB[groupName].name = groupName
+  
+  ACD:SelectGroup(addonName, profileName, groupName)
+  
+  return groupName
+end
+
+local function addIconToDB(profileName, profileDB, auraDB, parent)
   local auraName
   if auraDB then
     auraName = auraDB.name
@@ -111,8 +154,6 @@ local function addIcon(profileName, profileDB, auraDB)
     profileDB[auraName] = auraDB
   else
     profileDB[auraName] = {
-      parent = "Root",
-      name = auraName,
       spell = "",
       unitID = "target",
       --multitarget = false,
@@ -138,7 +179,9 @@ local function addIcon(profileName, profileDB, auraDB)
     }
   end
   
+  profileDB[auraName].parent = parent or "Root"
   profileDB[auraName].name = auraName
+  
   ACD:SelectGroup(addonName, profileName, auraName)
 end
 
@@ -218,9 +261,9 @@ function Addon:OpenCustomTextFrame(name, db, parametersString)
 end
 
 
-------------------
--- Export Frame --
-------------------
+-----------------------
+-- Export Icon Frame --
+-----------------------
 local customExportFrame
 local customExportFrameEditBox
 
@@ -246,7 +289,7 @@ function Addon:OpenCustomExportFrame(auraDB)
   local box = GUI:Create("MultiLineEditBox")
   box:DisableButton()
   box:SetLabel("Export Table")
-  box:SetText(ASE:Serialize(auraDB))
+  box:SetText("i"..ASE:Serialize(auraDB))
   box:HighlightText()
   box:SetFocus()
   customExportFrame:AddChild(box)
@@ -267,6 +310,37 @@ local function customImportFrameOnClose(widget)
   customImportFrameEditBox = nil
 end
 
+local function importIconFromString(profileName, profileDB, text, parent)
+  local success, ret = ASE:Deserialize(text)
+  if success then
+    addIconToDB(profileName, profileDB.auras, ret, parent)
+  else
+    print(addonName..": "..ret)
+  end
+end
+
+local function importGroupFromString(profileName, profileDB, text, parent)
+  local success, ret = ASE:Deserialize(text)
+  if success then
+    return addGroupToDB(profileName, profileDB.groups, ret, parent)
+  else
+    print(addonName..": "..ret)
+  end
+end
+
+local function importFromString(profileName, profileDB, text)
+  local parent = {}
+  for subStr in text:gmatch("%S+") do
+    if subStr:find("^g") then
+      parent[subStr:match("^g(%d-)|")] = importGroupFromString(profileName, profileDB, subStr, parent[subStr:match("|(%d-)%^")])
+    elseif subStr:find("^i") then
+      importIconFromString(profileName, profileDB, subStr, parent[subStr:match("^i(%d-)%^")])
+    end
+  end
+  customImportFrameOnClose(customImportFrame)
+  Addon:Options()
+end
+
 function Addon:OpenCustomImportFrame(profileName, profileDB)
   if customImportFrame then
     customImportFrameOnClose(customImportFrame)
@@ -283,18 +357,74 @@ function Addon:OpenCustomImportFrame(profileName, profileDB)
   local box = GUI:Create("MultiLineEditBox")
   box:SetLabel("Paste Icon String")
   box:SetCallback("OnEnterPressed", function(widget, event, text)
-    local success, ret = ASE:Deserialize(text)
-    if success then
-      addIcon(profileName, profileDB, ret)
-      customImportFrameOnClose(customImportFrame)
-      Addon:Options()
-    else
-      print(addonName..": "..ret)
-    end
+    importFromString(profileName, profileDB, text)
   end)
   box:SetFocus()
   customImportFrame:AddChild(box)
   customImportFrameEditBox = box
+end
+
+
+
+------------------------
+-- Export Group Frame --
+------------------------
+local customExportGroupFrame
+local customExportGroupFrameEditBox
+
+local function customExportGroupFrameOnClose(widget)
+  GUI:Release(widget)
+  customExportGroupFrame = nil
+  customExportGroupFrameEditBox = nil
+end
+
+local function serializeGroupAndChildren(profileDB, groupDB)
+  serializedGroupAndChildren = ""
+  local groupNumber = 0
+  
+  local function addGroupToString(groupDB, parentGroupNumber)
+    groupNumber = groupNumber + 1
+    local thisGroupNumber = groupNumber
+    
+    serializedGroupAndChildren = serializedGroupAndChildren.." g"..thisGroupNumber.."|"..parentGroupNumber..ASE:Serialize(groupDB)
+    for auraName, auraDB in pairs(profileDB.auras) do
+      if auraDB.parent == groupDB.name then
+        serializedGroupAndChildren = serializedGroupAndChildren.." i"..thisGroupNumber..ASE:Serialize(auraDB)
+      end
+    end
+    for k, v in pairs(profileDB.groups) do
+      if v.parent == groupDB.name then
+        addGroupToString(v, thisGroupNumber)
+      end
+    end
+  end
+  
+  addGroupToString(groupDB, groupNumber)
+  
+  return serializedGroupAndChildren
+end
+
+function Addon:OpenCustomExportGroupFrame(profileDB, groupDB)
+  if customExportGroupFrame then
+    customExportGroupFrameOnClose(customExportGroupFrame)
+  end
+  
+  customExportGroupFrame = GUI:Create("Frame")
+  customExportGroupFrame:SetTitle("Group Export")
+  customExportGroupFrame:SetWidth(CONTAINER_WIDTH)
+  customExportGroupFrame:SetWidth(CONTAINER_HEIGHT)
+  customExportGroupFrame:SetCallback("OnClose", customExportGroupFrameOnClose)
+  customExportGroupFrame:SetLayout("Fill")
+  GUI:SetFocus(customExportGroupFrame)
+  
+  local box = GUI:Create("MultiLineEditBox")
+  box:DisableButton()
+  box:SetLabel("Export Table")
+  box:SetText(serializeGroupAndChildren(profileDB, groupDB))
+  box:HighlightText()
+  box:SetFocus()
+  customExportGroupFrame:AddChild(box)
+  customExportGroupFrameEditBox = box
 end
 
 
@@ -307,9 +437,6 @@ end
 ----  Pretty wasteful with table generation which isn't an issue with out-of-combat garbage collection
 ----  Widgets get recycled by AceConfig/AceGUI
 ]]-- 
-
-local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
-local renamedGroup = {}
 
 local function getGroupParent(profileName, groupDB)
   local groupParent
@@ -385,20 +512,20 @@ local function addGroups(profileOptions, profileDB)
     name = "New Group",
     type = "execute",
     func = function(info)
-      if db["New Group"] then
-        print(addonName..": 'New Group' already exists")
-      else
-        db["New Group"] = {
-          groupType = "Group",
-          direction = "Right",
-          posX = GetScreenWidth() / 2,
-          posY = GetScreenHeight() / 2
-        }
-        ACD:SelectGroup(addonName, info[#info-1], "New Group")
-      end
+      addGroupToDB(info[#info-1], db)
     end
   }
+  order = order + 1
   
+  -- Import (also for icon strings)
+  profileOptions.import = {
+    order = order,
+    name = "Import",
+    type = "execute",
+    func = function(info)
+      Addon:OpenCustomImportFrame(info[#info-1], profileDB)
+    end,
+  }
   order = order + 1
   
   -- Group options creation
@@ -481,6 +608,19 @@ local function addGroups(profileOptions, profileDB)
           step = 1,
           hidden = groupDB.groupType ~= "Dynamic Group"
         },
+        exportGroupHeader = {
+          order = 7,
+          name = "Export Group",
+          type = "header"
+        },
+        exportGroup = {
+          order = 8,
+          name = "Export Group",
+          type = "execute",
+          func = function()
+            Addon:OpenCustomExportGroupFrame(profileDB, groupDB)
+          end,
+        },
         deleteGroupHeader = {
           order = 99,
           name = "Delete Group",
@@ -519,20 +659,20 @@ local function addAuras(profileOptions, profileDB)
     name = "New Icon",
     type = "execute",
     func = function(info)
-      addIcon(info[#info-1], db)
+      addIconToDB(info[#info-1], db)
     end
   }
   order = order + 1
   
-  profileOptions.importAura = {
+  --[[profileOptions.importAura = {
     order = order,
     name = "Import Icon",
     type = "execute",
     func = function(info)
-      Addon:OpenCustomImportFrame(info[#info-1], db)
+      Addon:OpenCustomImportFrame(info[#info-1], profileDB)
     end,
   }
-  order = order + 1
+  order = order + 1]]--
   
   for auraName, auraDB in pairsByKeys(db) do
     -- Check if parent group name has changed
