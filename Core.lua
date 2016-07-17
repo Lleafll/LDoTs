@@ -359,6 +359,7 @@ local function storeAuraFrame(frame)
   frame.visibility = nil
   frame.eventHandler = nil
   frame.db = nil
+  frame.dynamicParent = nil
   
   auraFrameCache[#auraFrameCache+1] = frame
 end
@@ -780,9 +781,9 @@ function Addon:InitializeFrame(frame, db, profileName)
     
   end
   
-  local dynamicParent = self:GetUltimateDynamicGroupParentDB(db, profileName)
-  if dynamicParent then
-    registerIconToGroup(frame, profileName, dynamicParent)  -- Register at the end to avoid OnShow callbacks from initializing
+  frame.dynamicParent = self:GetUltimateDynamicGroupParentDB(db, profileName)
+  if frame.dynamicParent then
+    registerIconToGroup(frame, profileName, frame.dynamicParent)  -- Register at the end to avoid OnShow callbacks from initializing
   end
 end
 
