@@ -8,6 +8,7 @@ local Addon = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceCo
 ---------------
 local ACD = LibStub("AceConfigDialog-3.0")
 local ADB = LibStub("AceDB-3.0")
+local ASE = LibStub("AceSerializer-3.0")
 local FIP = IndentationLib
 local GUI = LibStub("AceGUI-3.0")
 local LSM = LibStub('LibSharedMedia-3.0')
@@ -51,6 +52,7 @@ local function pairsByKeys(t, f)  -- https://www.lua.org/pil/19.3.html
   end
   return iter
 end
+
 
 
 
@@ -157,6 +159,40 @@ function Addon:OpenCustomTextFrame(name, db, parametersString)
   box:SetFocus()
   customTextFrame:AddChild(box)
   customTextFrameEditBox = box
+end
+
+
+------------------
+-- Export Frame --
+------------------
+local customExportFrame
+local customExportFrameEditBox
+
+local function customExportFrameOnClose(widget)
+  GUI:Release(widget)
+  customExportFrame = nil
+  customExportFrameEditBox = nil
+end
+
+function Addon:OpenCustomExportFrame(auraDB)
+  if customExportFrame then
+    customExportFrameOnClose(customExportFrame)
+  end
+  
+  customExportFrame = GUI:Create("Frame")
+  customExportFrame:SetTitle("Export")
+  customExportFrame:SetWidth(CONTAINER_WIDTH)
+  customExportFrame:SetWidth(CONTAINER_HEIGHT)
+  customExportFrame:SetCallback("OnClose", customExportFrameOnClose)
+  customExportFrame:SetLayout("Fill")
+  GUI:SetFocus(customExportFrame)
+  
+  local box = GUI:Create("MultiLineEditBox")
+  box:SetLabel("Export Table")
+  box:SetText(ASE:Serialize(auraDB))
+  box:SetFocus()
+  customExportFrame:AddChild(box)
+  customExportFrameEditBox = box
 end
 
 
@@ -786,6 +822,19 @@ local function addAuras(profileOptions, profileDB)
           name = "OnUpdate",
           type = "execute",
           func = function() Addon:OpenCustomTextFrame("OnUpdate", auraDB, "self, elapsed") end
+        },
+        headerExport = {
+          order = 29,
+          name = "Export Aura",
+          type = "header"
+        },
+        exportAura = {
+          order = 30,
+          name = "Export",
+          type = "execute",
+          func = function()
+            Addon:OpenCustomExportFrame(auraDB)
+          end,
         },
         headerDelete = {
           order = 99,
