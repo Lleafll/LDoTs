@@ -88,6 +88,62 @@ local defaultSettings = {
 
 
 
+--------------
+-- New Icon --
+--------------
+local function addIcon(profileName, profileDB, auraDB)
+  local auraName
+  if auraDB then
+    auraName = auraDB.name
+  else
+    auraName = "New Icon"
+  end
+  
+  if profileDB[auraName] then
+    local i = 2
+    while profileDB[auraName..i] do
+      i = i + 1
+    end
+    auraName = auraName..i
+  end
+  
+  if auraDB then
+    profileDB[auraName] = auraDB
+  else
+    profileDB[auraName] = {
+      parent = "Root",
+      name = auraName,
+      spell = "",
+      unitID = "target",
+      --multitarget = false,
+      multitargetCount = 1,
+      auraType = "Debuff",
+      ownOnly = true,
+      --showStacks = false,
+      pandemic = true,
+      pandemicExtra = 0,
+      pandemicHasted = true,
+      --hideSwirl = false,
+      iconOverride = "",
+      height = 32,
+      width = 32,
+      arrangePriority = "Horizontal-Vertical",
+      arrangeRows = 1,
+      arrangeXDistance = 33,
+      arrangeYDistance = 33,
+      --anchor = "CENTER",
+      posX = GetScreenWidth() / 2,
+      posY = GetScreenHeight() / 2,
+      visibility = "show"
+    }
+  end
+  
+  profileDB[auraName].name = auraName
+  ACD:SelectGroup(addonName, profileName, auraName)
+end
+
+
+
 --------------------------------------
 -- Extra Frame for Custom Functions --
 --------------------------------------
@@ -180,7 +236,7 @@ function Addon:OpenCustomExportFrame(auraDB)
   end
   
   customExportFrame = GUI:Create("Frame")
-  customExportFrame:SetTitle("Export")
+  customExportFrame:SetTitle("Icon Export")
   customExportFrame:SetWidth(CONTAINER_WIDTH)
   customExportFrame:SetWidth(CONTAINER_HEIGHT)
   customExportFrame:SetCallback("OnClose", customExportFrameOnClose)
@@ -188,11 +244,57 @@ function Addon:OpenCustomExportFrame(auraDB)
   GUI:SetFocus(customExportFrame)
   
   local box = GUI:Create("MultiLineEditBox")
+  box:DisableButton()
   box:SetLabel("Export Table")
   box:SetText(ASE:Serialize(auraDB))
+  box:HighlightText()
   box:SetFocus()
   customExportFrame:AddChild(box)
   customExportFrameEditBox = box
+end
+
+
+
+------------------
+-- Import Frame --
+------------------
+local customImportFrame
+local customImportFrameEditBox
+
+local function customImportFrameOnClose(widget)
+  GUI:Release(widget)
+  customImportFrame = nil
+  customImportFrameEditBox = nil
+end
+
+function Addon:OpenCustomImportFrame(profileName, profileDB)
+  if customImportFrame then
+    customImportFrameOnClose(customImportFrame)
+  end
+  
+  customImportFrame = GUI:Create("Frame")
+  customImportFrame:SetTitle("Icon Import")
+  customImportFrame:SetWidth(CONTAINER_WIDTH)
+  customImportFrame:SetWidth(CONTAINER_HEIGHT)
+  customImportFrame:SetCallback("OnClose", customImportFrameOnClose)
+  customImportFrame:SetLayout("Fill")
+  GUI:SetFocus(customImportFrame)
+  
+  local box = GUI:Create("MultiLineEditBox")
+  box:SetLabel("Paste Icon String")
+  box:SetCallback("OnEnterPressed", function(widget, event, text)
+    local success, ret = ASE:Deserialize(text)
+    if success then
+      addIcon(profileName, profileDB, ret)
+      customImportFrameOnClose(customImportFrame)
+      Addon:Options()
+    else
+      print(addonName..": "..ret)
+    end
+  end)
+  box:SetFocus()
+  customImportFrame:AddChild(box)
+  customImportFrameEditBox = box
 end
 
 
@@ -205,7 +307,7 @@ end
 ----  Pretty wasteful with table generation which isn't an issue with out-of-combat garbage collection
 ----  Widgets get recycled by AceConfig/AceGUI
 ]]-- 
- 
+
 local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
 local renamedGroup = {}
 
@@ -417,40 +519,19 @@ local function addAuras(profileOptions, profileDB)
     name = "New Icon",
     type = "execute",
     func = function(info)
-      if db["New Icon"] then
-        print(addonName..": 'New Icon' already exists")
-      else
-        db["New Icon"] = {
-          parent = "Root",
-          name = "New Icon",
-          spell = "",
-          unitID = "target",
-          --multitarget = false,
-          multitargetCount = 1,
-          auraType = "Debuff",
-          ownOnly = true,
-          --showStacks = false,
-          pandemic = true,
-          pandemicExtra = 0,
-          pandemicHasted = true,
-          --hideSwirl = false,
-          iconOverride = "",
-          height = 32,
-          width = 32,
-          arrangePriority = "Horizontal-Vertical",
-          arrangeRows = 1,
-          arrangeXDistance = 33,
-          arrangeYDistance = 33,
-          --anchor = "CENTER",
-          posX = GetScreenWidth() / 2,
-          posY = GetScreenHeight() / 2,
-          visibility = "show"
-        }
-        ACD:SelectGroup(addonName, info[#info-1], "New Icon")
-      end
+      addIcon(info[#info-1], db)
     end
   }
+  order = order + 1
   
+  profileOptions.importAura = {
+    order = order,
+    name = "Import Icon",
+    type = "execute",
+    func = function(info)
+      Addon:OpenCustomImportFrame(info[#info-1], db)
+    end,
+  }
   order = order + 1
   
   for auraName, auraDB in pairsByKeys(db) do
@@ -695,24 +776,6 @@ local function addAuras(profileOptions, profileDB)
           name = "Positioning",
           type = "header",
         },
-        --[[anchor = {
-          order = 10,
-          name = "Anchor",
-          type = "select",
-          style = "dropdown",
-          values = {
-            ["CENTER"] = "CENTER",
-            ["BOTTOM"] = "BOTTOM",
-            ["TOP"] = "TOP",
-            ["LEFT"] = "LEFT",
-            ["RIGHT"] = "RIGHT",
-            ["BOTTOMLEFT"] = "BOTTOMLEFT",
-            ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
-            ["TOPLEFT"] = "TOPLEFT",
-            ["TOPRIGHT"] = "TOPRIGHT"
-          },
-          hidden = auraDB.multitarget
-        },]]--
         posX = {
           order = 11,
           name = "X Position",
