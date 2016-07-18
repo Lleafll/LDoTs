@@ -40,7 +40,6 @@ local CONTAINER_HEIGHT = 750
 -- Variables --
 ---------------
 local groupPool = {}  -- Store created group option for later reference by children (auras or other groups)
-local renamedGroup = {}
 
 
 
@@ -504,7 +503,6 @@ local function addGroups(profileOptions, profileDB)
   local order = #profileOptions + 1000  -- Insert Groups after icons
   groupPool[profileDB.profile] = {}
   groupPool[profileDB.profile]["Root"] = profileOptions
-  renamedGroup[profileDB.profile] = renamedGroup[profileDB.profile] or {}
   
   -- Group creation execute widget
   profileOptions.newGroup = {
@@ -530,11 +528,6 @@ local function addGroups(profileOptions, profileDB)
   
   -- Group options creation
   for groupName, groupDB in pairsByKeys(db) do
-    -- Check if parent group name has changed
-    if renamedGroup[profileDB.profile].old == groupDB.parent then
-      groupDB.parent = renamedGroup[profileDB.profile].new
-    end
-    
     local groupOptions = {
       order = order,
       name = groupName,
@@ -558,7 +551,16 @@ local function addGroups(profileOptions, profileDB)
             return groupName
           end,
           set = function(info, value)
-            renamedGroup[profileDB.profile] = {old = groupName, new = value}
+            for k, v in pairs(profileDB.auras) do
+              if v.parent == groupName then
+                v.parent = value
+              end
+            end
+            for k, v in pairs(profileDB.groups) do
+              if v.parent == groupName then
+                v.parent = value
+              end
+            end
             groupDB.name = value
             db[value] = groupDB
             db[groupName] = nil
@@ -674,12 +676,7 @@ local function addAuras(profileOptions, profileDB)
   }
   order = order + 1]]--
   
-  for auraName, auraDB in pairsByKeys(db) do
-    -- Check if parent group name has changed
-    if renamedGroup[profileDB.profile].old == auraDB.parent then
-      auraDB.parent = renamedGroup[profileDB.profile].new
-    end
-    
+  for auraName, auraDB in pairsByKeys(db) do   
     -- Get parent group according to db and add aura to it
     local groupParent = getGroupParent(profileDB.profile, auraDB)
     groupParent[auraName] = {
@@ -1126,9 +1123,6 @@ local function addAuras(profileOptions, profileDB)
     
     order = order + 1
   end
-    
-  -- Nil name check for renamed groups since we iterated over all auras
-  renamedGroup[profileDB.profile] = nil
 end
 
 local function addOptions(profileOptions, profileDB)
