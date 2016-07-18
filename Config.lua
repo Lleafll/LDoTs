@@ -142,6 +142,7 @@ local function addIconToDB(profileName, profileDB, auraDB, parent)
   end
   
   if profileDB[auraName] then
+    auraName = auraName.." "
     local i = 2
     while profileDB[auraName..i] do
       i = i + 1
