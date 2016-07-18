@@ -667,16 +667,6 @@ local function addAuras(profileOptions, profileDB)
   }
   order = order + 1
   
-  --[[profileOptions.importAura = {
-    order = order,
-    name = "Import Icon",
-    type = "execute",
-    func = function(info)
-      Addon:OpenCustomImportFrame(info[#info-1], profileDB)
-    end,
-  }
-  order = order + 1]]--
-  
   for auraName, auraDB in pairsByKeys(db) do   
     -- Get parent group according to db and add aura to it
     local groupParent = getGroupParent(profileDB.profile, auraDB)
@@ -1084,23 +1074,6 @@ local function addAuras(profileOptions, profileDB)
               name = "Positioning",
               type = "header",
             },
-            --[[anchor = {
-              order = 10,
-              name = "Anchor",
-              type = "select",
-              style = "dropdown",
-              values = {
-                ["CENTER"] = "CENTER",
-                ["BOTTOM"] = "BOTTOM",
-                ["TOP"] = "TOP",
-                ["LEFT"] = "LEFT",
-                ["RIGHT"] = "RIGHT",
-                ["BOTTOMLEFT"] = "BOTTOMLEFT",
-                ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
-                ["TOPLEFT"] = "TOPLEFT",
-                ["TOPRIGHT"] = "TOPRIGHT"
-              },
-            },]]--
             posX = {
               order = 11,
               name = "X Position",
@@ -1242,6 +1215,7 @@ local function addOptions(profileOptions, profileDB)
             print(addonName..": 'New Template' already exists.")
           else
             profileDB.visibilityTemplates["New Template"] = ""
+            ACD:SelectGroup(addonName, "visibilityTemplates", "New Template")
           end
         end
       }
@@ -1267,8 +1241,19 @@ local function addOptions(profileOptions, profileDB)
             return name
           end,
           set = function(info, value)
+            for _, v in pairs(Addon.db.global.auras) do
+              if v.visibility == name then
+                v.visibility = value
+              end
+            end
+            for _, v in pairs(Addon.db.class.auras) do
+              if v.visibility == name then
+                v.visibility = value
+              end
+            end
             templatesDB[value] = templatesDB[name]
             templatesDB[name] = nil
+            ACD:SelectGroup(addonName, "visibilityTemplates", value)
           end,
         },
         newline = {
