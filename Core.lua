@@ -399,7 +399,7 @@ local function auraEventHandler(self, event, ...)
     _, _, icon, count, _, duration, expires = UnitDebuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   end
   
-  if db.showMissing then
+  if db.showMissing == nil then
     if duration then
       self:Hide()
     else
@@ -461,8 +461,12 @@ local function auraEventHandler(self, event, ...)
       self.stacksString:SetText(count)
     end
     
-  else
+  elseif db.showMissing == false then
     self:Hide()
+    
+  else
+    self:Show()
+    self.pandemicBorder:Show()
     
   end
 end

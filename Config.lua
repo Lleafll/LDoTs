@@ -175,7 +175,8 @@ local function addIconToDB(profileName, profileDB, auraDB, parent)
       --anchor = "CENTER",
       posX = GetScreenWidth() / 2,
       posY = GetScreenHeight() / 2,
-      visibility = "show"
+      visibility = "show",
+      showMissing == false
     }
   end
   
@@ -797,8 +798,9 @@ local function addAuras(profileOptions, profileDB)
         },
         showMissing = {
           order = 3.1,
-          name = "Show When Missing",
+          name = auraDB.showMissing == true and "Always Show" or auraDB.showMissing == false and "Show When Applied" or "Show When Missing",
           type = "toggle",
+          tristate = true,
           hidden = auraDB.iconType ~= "Aura"
         },
         checkUsability = {
