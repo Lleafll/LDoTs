@@ -428,6 +428,7 @@ local function auraEventHandler(self, event, ...)
   
     if duration ~= self.duration or expires ~= self.expires or pandemic ~= self.pandemic or inPandemic ~= self.inPandemic or duration == 0 then
       self:Show()
+      self.texture:SetVertexColor(1, 1, 1, 1)
       
       if not self.icon then
         self.texture:SetTexture(icon)
@@ -467,6 +468,8 @@ local function auraEventHandler(self, event, ...)
   else
     self:Show()
     self.pandemicBorder:Show()
+    local c = generalDB.borderPandemicColor
+    self.texture:SetVertexColor(c.r, c.b, c.g, c.a)
     
   end
 end
@@ -730,8 +733,6 @@ function Addon:InitializeFrame(frame, db, profileName)
       frame.eventHandler = auraEventHandler
       
     elseif db.iconType == "Spell" then
-      --local _, _, _, _, _, _, spellID = GetSpellInfo(db.spell)
-      --if spellID and (IsPlayerSpell(spellID) or IsSpellKnown(spellID) or IsSpellKnown(spellID, true)) then
       if GetSpellInfo(db.spell) then
         frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
         frame:RegisterEvent("SPELL_UPDATE_USABLE")
