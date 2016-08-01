@@ -248,10 +248,10 @@ local function getGroupFrame()
 end
 
 local function storeGroupFrame(frame)
-  frame:Hide()
   frame:SetScript("OnEvent", nil)
   wipe(frame.icons)
   frame.dragger = nil
+  frame:Hide()
   groupFrameCache[#groupFrameCache+1] = frame
 end
 
@@ -345,7 +345,6 @@ local function getAuraFrame()
 end
 
 local function storeAuraFrame(frame)
-  frame:Hide()
   frame:SetScript("OnEvent", nil)
   frame:UnregisterAllEvents()
   frame:SetScript("OnUpdate", nil)
@@ -360,6 +359,7 @@ local function storeAuraFrame(frame)
   frame.eventHandler = nil
   frame.db = nil
   frame.dynamicParent = nil
+  frame:Hide()
   
   auraFrameCache[#auraFrameCache+1] = frame
 end
@@ -649,7 +649,6 @@ end
 function Addon:InitializeFrame(frame, db, profileName)
   frame.db = db
   
-  frame:Show()
   local width = db.width
   local height = db.height
   frame:SetSize(width, height)
