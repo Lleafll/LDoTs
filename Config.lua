@@ -1020,7 +1020,7 @@ local function addAuras(profileOptions, profileDB)
         },
         Stacks = {
           order = 26,
-          name = "Stacks",
+          name = auraDB.Stacks and auraDB.Stacks ~= "" and "|cFF00FF00Stacks|r" or "Stacks",
           type = "execute",
           func = function()
             Addon:OpenCustomTextFrame("Stacks", auraDB, "self, stacks")
@@ -1028,7 +1028,7 @@ local function addAuras(profileOptions, profileDB)
         },
         OnEvent = {
           order = 27,
-          name = "OnEvent",
+          name = auraDB.OnEvent and auraDB.OnEvent ~= "" and "|cFF00FF00OnEvent|r" or "OnEvent",
           type = "execute",
           func = function()
             Addon:OpenCustomTextFrame("OnEvent", auraDB, "... (varargs passed by events, with self as first argument)")
@@ -1036,7 +1036,7 @@ local function addAuras(profileOptions, profileDB)
         },
         OnUpdate = {
           order = 28,
-          name = "OnUpdate",
+          name = auraDB.OnUpdate and auraDB.OnUpdate ~= "" and "|cFF00FF00OnUpdate|r" or "OnUpdate",
           type = "execute",
           func = function()
             Addon:OpenCustomTextFrame("OnUpdate", auraDB, "self, elapsed", "Interval")
