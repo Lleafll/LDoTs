@@ -19,6 +19,8 @@ local GetSpellCharges = GetSpellCharges
 local GetSpellCooldown = GetSpellCooldown
 local GetSpellInfo = GetSpellInfo
 local GetTime = GetTime
+local IsEquippableItem = IsEquippableItem
+local IsEquippedItem = IsEquippedItem
 local IsPlayerSpell = IsPlayerSpell
 local IsSpellKnown = IsSpellKnown
 local loadstring = loadstring
@@ -755,7 +757,7 @@ function Addon:InitializeFrame(frame, db, profileName)
       
     elseif db.iconType == "Item" then
       local _, link = GetItemInfo(db.spell)
-      if link then
+      if link and (not IsEquippableItem(db.spell) or IsEquippedItem(db.spell)) then
         frame.itemID = tonumber(string_match(link, "item:(.-):"))
         frame:RegisterEvent("BAG_UPDATE_COOLDOWN")
         frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")

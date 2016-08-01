@@ -1378,14 +1378,34 @@ Addon:RegisterChatCommand(addonName, "HandleChatCommand")
 
 
 --------------------
+-- Event Handling --
+--------------------
+function Addon:PLAYER_ENTERING_WORLD()
+  self:Build()
+  
+  self:RegisterEvent("PLAYER_TALENT_UPDATE", "Build")
+  self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED", "Build")
+  self:RegisterEvent("EQUIPMENT_SWAP_PENDING")
+  self:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
+  
+  self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+end
+
+function Addon:EQUIPMENT_SWAP_PENDING()
+  self:UnregisterEvent("PLAYER_EQUIPMENT_CHANGED")
+end
+
+function Addon:EQUIPMENT_SWAP_FINISHED()
+  self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED", "Build")
+end
+
+
+
+--------------------
 -- Initialization --
 --------------------
 function Addon:OnInitialize()
-	self.db = ADB:New(addonName.."DB", defaultSettings, true)
+  self.db = ADB:New(addonName.."DB", defaultSettings, true)
   
-  self:RegisterEvent("PLAYER_ENTERING_WORLD", function()  -- Delay so UIScale can be read
-    Addon:Build()
-    Addon:RegisterEvent("PLAYER_TALENT_UPDATE", "Build")
-    Addon:UnregisterEvent("PLAYER_ENTERING_WORLD")
-  end)
+  self:RegisterEvent("PLAYER_ENTERING_WORLD")
 end
