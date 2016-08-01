@@ -18,6 +18,7 @@ local LSM = LibStub('LibSharedMedia-3.0')
 --------------
 -- Upvalues --
 --------------
+local C_Timer_NewTimer = C_Timer.NewTimer
 local GetItemInfo = GetItemInfo
 local GetSpellInfo = GetSpellInfo
 local math_ceil = math.ceil
@@ -1380,23 +1381,29 @@ Addon:RegisterChatCommand(addonName, "HandleChatCommand")
 --------------------
 -- Event Handling --
 --------------------
+do
+  local equipmentChangedTimer
+  
+  local function delayBuild()
+    equipmentChangedTimer = nil
+    Addon:Build()
+  end
+  
+  function Addon:PLAYER_EQUIPMENT_CHANGED()  -- Needs to be delayed because it gets spammed on set change (and EQUIPMENT_SWAP_FINISHED fires too early)
+    if equipmentChangedTimer then
+      equipmentChangedTimer:Cancel()
+    end
+    equipmentChangedTimer = C_Timer_NewTimer(0.1, delayBuild)
+  end
+end
+
 function Addon:PLAYER_ENTERING_WORLD()
   self:Build()
   
   self:RegisterEvent("PLAYER_TALENT_UPDATE", "Build")
-  self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED", "Build")
-  self:RegisterEvent("EQUIPMENT_SWAP_PENDING")
-  self:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
+  self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
   
   self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-end
-
-function Addon:EQUIPMENT_SWAP_PENDING()
-  self:UnregisterEvent("PLAYER_EQUIPMENT_CHANGED")
-end
-
-function Addon:EQUIPMENT_SWAP_FINISHED()
-  self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED", "Build")
 end
 
 
