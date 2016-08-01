@@ -780,9 +780,17 @@ function Addon:InitializeFrame(frame, db, profileName)
     frame:eventHandler()
     
     if db.OnUpdate and db.OnUpdate ~= "" then
-      local onUpdateFunc = assert(loadstring("local self, elapsed = ...;"..db.OnUpdate))
-      frame:SetScript("OnUpdate", onUpdateFunc)
-      onUpdateFunc(frame, 100)
+      local onUpdateFunc = assert(loadstring("-- "..db.name.." OnUpdate\nlocal self, elapsed = ...;"..db.OnUpdate))
+      local threshold = tonumber(db.OnUpdateInterval) or 1
+      local totalElapsed = 0
+      frame:SetScript("OnUpdate", function(self, elapsed)
+        totalElapsed = totalElapsed + elapsed
+        if totalElapsed > threshold then
+          self.texture:SetVertexColor(onUpdateFunc(self))
+          totalElapsed = 0
+        end
+      end)
+      onUpdateFunc(frame)
     end
     
   end

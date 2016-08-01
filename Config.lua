@@ -228,16 +228,30 @@ colorTable["not"] = logicColor2
 colorTable[0] = "|r"
 
 local customTextFrame
-local customTextFrameEditBox
+--local customTextFrameEditBox
 
 local function customTextFrameOnClose(widget)
-  FIP.disable(customTextFrameEditBox.editBox)
+  --FIP.disable(customTextFrameEditBox.editBox)
   GUI:Release(widget)
   customTextFrame = nil
-  customTextFrameEditBox = nil
+  --customTextFrameEditBox = nil
 end
 
-function Addon:OpenCustomTextFrame(name, db, parametersString)
+local function buildEditBox(type, name, db, description)
+  local box = GUI:Create(type)
+  box:SetFullWidth(true)
+  box:SetLabel(description)
+  if db[name] then
+    box:SetText(db[name])
+  end
+  box:SetCallback("OnEnterPressed", function(widget, event, text)
+    db[name] = text
+  end)
+  customTextFrame:AddChild(box)
+  return box
+end
+
+function Addon:OpenCustomTextFrame(name, db, parametersString, ...)
   if customTextFrame then
     customTextFrameOnClose(customTextFrame)
   end
@@ -247,21 +261,20 @@ function Addon:OpenCustomTextFrame(name, db, parametersString)
   customTextFrame:SetWidth(CONTAINER_WIDTH)
   customTextFrame:SetWidth(CONTAINER_HEIGHT)
   customTextFrame:SetCallback("OnClose", customTextFrameOnClose)
-  customTextFrame:SetLayout("Fill")
+  customTextFrame:SetLayout("List")
   GUI:SetFocus(customTextFrame)
   
-  local box = GUI:Create("MultiLineEditBox")
-  box:SetLabel("Passed parameters: "..parametersString)
-  if db[name] then
-    box:SetText(db[name])
+  if ... then
+    for k, v in ipairs({...}) do
+      buildEditBox("EditBox", name..v, db, v)
+    end
   end
-  box:SetCallback("OnEnterPressed", function(widget, event, text)
-    db[name] = text
-  end)
+  
+  box = buildEditBox("MultiLineEditBox", name, db, "Passed parameters: "..parametersString)
+  box:SetNumLines(25)
   FIP.enable(box.editBox, colorTable, 2)
   box:SetFocus()
-  customTextFrame:AddChild(box)
-  customTextFrameEditBox = box
+  --customTextFrameEditBox = box
 end
 
 
@@ -1009,19 +1022,25 @@ local function addAuras(profileOptions, profileDB)
           order = 26,
           name = "Stacks",
           type = "execute",
-          func = function() Addon:OpenCustomTextFrame("Stacks", auraDB, "self, stacks") end
+          func = function()
+            Addon:OpenCustomTextFrame("Stacks", auraDB, "self, stacks")
+          end
         },
         OnEvent = {
           order = 27,
           name = "OnEvent",
           type = "execute",
-          func = function() Addon:OpenCustomTextFrame("OnEvent", auraDB, "... (varargs passed by events, with self as first argument)") end
+          func = function()
+            Addon:OpenCustomTextFrame("OnEvent", auraDB, "... (varargs passed by events, with self as first argument)")
+          end
         },
         OnUpdate = {
           order = 28,
           name = "OnUpdate",
           type = "execute",
-          func = function() Addon:OpenCustomTextFrame("OnUpdate", auraDB, "self, elapsed") end
+          func = function()
+            Addon:OpenCustomTextFrame("OnUpdate", auraDB, "self, elapsed", "Interval")
+          end
         },
         headerExport = {
           order = 29,
