@@ -1366,11 +1366,11 @@ end
 ------------------
 function Addon:HandleChatCommand(input)
   if ACD.OpenFrames[addonName] then  -- TODO: Check why this works
-		ACD:Close(addonName)
-	else
+    ACD:Close(addonName)
+  else
     self.unlocked = true
-		self:Options()
-	end
+    self:Options()
+  end
 end
 
 Addon:RegisterChatCommand(addonName, "HandleChatCommand")
