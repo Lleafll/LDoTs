@@ -18,6 +18,8 @@ local LSM = LibStub('LibSharedMedia-3.0')
 --------------
 -- Upvalues --
 --------------
+local GetItemInfo = GetItemInfo
+local GetSpellInfo = GetSpellInfo
 local math_ceil = math.ceil
 local pairs = pairs
 local string_match = string.match
@@ -735,7 +737,11 @@ local function addAuras(profileOptions, profileDB)
           type = "input",
           set = function(info, value)
             local numberValue = tonumber(value)
-            value = numberValue and numberValue or value
+            if numberValue then
+              value = numberValue
+            else
+              value = GetItemInfo(value) or value  -- Strip away link to make item more general
+            end
             auraDB.spell = value
             if not auraDB.iconOverride or auraDB.iconOverride == "" then
               local _, icon
