@@ -472,7 +472,7 @@ function Addon:GetUltimateDynamicGroupParentDB(iconDB, profileName)
   local dynamicGroupParentName
   local groupParentName = iconDB.parent
   while groupParentName ~= "Root" do
-    if profileGroups[groupParentName].groupType == "Dynamic Group" then
+    if profileGroups[groupParentName].groupType == "Dynamic" then
       dynamicGroupParentName = groupParentName
     end
     groupParentName = profileGroups[groupParentName].parent
@@ -594,7 +594,8 @@ local function addGroups(profileOptions, profileDB)
           style = "dropdown",
           values = {
             ["Group"] = "Group",
-            ["Dynamic Group"] = "Dynamic Group"
+            ["Dynamic"] = "Dynamic Group",
+            ["Multiunit"] = "Multiunit Group",
           }
         },
         direction = {
@@ -602,7 +603,7 @@ local function addGroups(profileOptions, profileDB)
           name = "Direction",
           type = "select",
           style = "dropdown",
-          hidden = groupDB.groupType ~= "Dynamic Group",
+          hidden = groupDB.groupType ~= "Dynamic",
           values = {
             ["Left"] = "Left",
             ["Right"] = "Right",
@@ -617,7 +618,7 @@ local function addGroups(profileOptions, profileDB)
           min = 0,
           max = math_ceil(GetScreenWidth()),
           step = 1,
-          hidden = groupDB.groupType ~= "Dynamic Group"
+          hidden = groupDB.groupType ~= "Dynamic"
         },
         posY = {
           order = 6,
@@ -626,7 +627,7 @@ local function addGroups(profileOptions, profileDB)
           min = 0,
           max = math_ceil(GetScreenHeight()),
           step = 1,
-          hidden = groupDB.groupType ~= "Dynamic Group"
+          hidden = groupDB.groupType ~= "Dynamic"
         },
         exportGroupHeader = {
           order = 7,

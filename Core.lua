@@ -638,7 +638,7 @@ end
 function Addon:BuildGroups(profileDB)
   local db = profileDB.groups
   for k, v in pairs(db) do
-    if v.groupType == "Dynamic Group" then
+    if v.groupType == "Dynamic" then
       self:InitializeDynamicGroup(v, profileDB.profile)
     end
   end
