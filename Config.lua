@@ -126,7 +126,8 @@ local function addGroupToDB(profileName, profileDB, groupDB, parent)
       posX = GetScreenWidth() / 2,
       posY = GetScreenHeight() / 2,
       unitID = "",
-      distance = 33
+      distance = 33,
+      multiunitCount = 5
     }
   end
   
