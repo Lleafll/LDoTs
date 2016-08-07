@@ -46,6 +46,13 @@ local groupFrameCache = {}
 
 
 
+-------------
+-- Utility --
+-------------
+local function dummyFunc() end
+
+
+
 -------------------------
 -- Aura Frame Dragging --
 -------------------------
@@ -68,9 +75,7 @@ local function onMouseDownHandler(self, button)
   elseif button == "RightButton" then
     local db = self.db
     if not db.groupType then
-      local tbl = getmetatable(db)  -- Get parent if multitarget frame
-      tbl = tbl and tbl.__index or db
-      tbl.hide = true
+      db.hide = true
       Addon:Options()
     end
   end
@@ -361,6 +366,8 @@ local function storeAuraFrame(frame)
   frame.eventHandler = nil
   frame.db = nil
   frame.dynamicParent = nil
+  frame.multiunitGroup = nil
+  frame.multiunitIndex = nil
   frame:Hide()
   
   auraFrameCache[#auraFrameCache+1] = frame
@@ -396,9 +403,9 @@ local function auraEventHandler(self, event, ...)
   local db = self.db
   local _, icon, count, duration, expires
   if db.auraType == "Buff" then
-    _, _, icon, count, _, duration, expires = UnitBuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, icon, count, _, duration, expires = UnitBuff(self.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   else
-    _, _, icon, count, _, duration, expires = UnitDebuff(db.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, icon, count, _, duration, expires = UnitDebuff(self.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   end
   
   if db.showMissing == nil then
@@ -434,9 +441,7 @@ local function auraEventHandler(self, event, ...)
       
       if not self.icon then
         self.texture:SetTexture(icon)
-        local tbl = getmetatable(db)  -- Get parent if multitarget frame
-        tbl = tbl and tbl.__index or db
-        tbl.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
+        db.iconOverride = string_match(icon, "Interface\\Icons\\(.+)")
         self.icon = true
       end
       
@@ -635,11 +640,20 @@ function Addon:InitializeDynamicGroup(db, profileName)
   end
 end
 
+function Addon:InitializeMultiunitGroup(groupDB, profileName)
+  local frame = getGroupFrame()  -- Use frames instead of tables so we can add events in the future if necessary, also for consistency with other group types
+  frame.db = groupDB
+  frame.profileName = profileName
+  frame:Show()
+end
+
 function Addon:BuildGroups(profileDB)
   local db = profileDB.groups
-  for k, v in pairs(db) do
-    if v.groupType == "Dynamic" then
-      self:InitializeDynamicGroup(v, profileDB.profile)
+  for _, groupDB in pairs(db) do
+    if groupDB.groupType == "Dynamic" then
+      self:InitializeDynamicGroup(groupDB, profileDB.profile)
+    elseif groupDB.groupType == "Multiunit" then
+      self:InitializeMultiunitGroup(groupDB, profileDB.profile)
     end
   end
 end
@@ -651,12 +665,38 @@ end
 function Addon:InitializeFrame(frame, db, profileName)
   frame.db = db
   
+  frame:ClearAllPoints()
+  
+  -- Multiunit
+  if frame.multiunitGroup then
+    local multiUnitDB = frame.multiunitGroup.db
+    local multiunitIndex = frame.multiunitIndex
+    frame.unitID = (multiUnitDB.unitID or "")..tostring(multiunitIndex)
+    local posX = db.posX
+    local posY = db.posY
+    local distance = multiUnitDB.distance or 33
+    local direction = multiUnitDB.direction
+    if direction == "Left" then
+      posX = posX - distance * (multiunitIndex - 1)
+    elseif direction == "Right" then
+      posX = posX + distance * (multiunitIndex - 1)
+    elseif direction == "Up" then
+      posY = posY + distance * (multiunitIndex - 1)
+    else  -- Down
+      posY = posY - distance * (multiunitIndex - 1)
+    end
+    frame:SetPoint("BOTTOMLEFT", posX, posY)
+  else
+    frame.unitID = db.unitID
+    frame:SetPoint("BOTTOMLEFT", db.posX, db.posY)
+  end
+  
+  -- Size
   local width = db.width
   local height = db.height
   frame:SetSize(width, height)
-  frame:ClearAllPoints()
-  frame:SetPoint("BOTTOMLEFT", db.posX, db.posY)
   
+  -- Visuals
   local _, icon
   if db.iconOverride and db.iconOverride ~= "" then
     icon = tonumber(db.iconOverride) or "Interface\\Icons\\"..db.iconOverride
@@ -673,6 +713,10 @@ function Addon:InitializeFrame(frame, db, profileName)
   
   frame.pandemicBorder:Hide()
   
+  frame.cooldown:SetDrawSwipe(not db.hideSwirl)
+  frame.chargeCooldown:SetDrawEdge(not db.hideSwirl)
+  
+  -- Stacks
   if db.showStacks and not (self.unlocked and db.hide) then
     frame.stacksString:Show()
     frame.stacksString:SetFont(LSM:Fetch("font", generalDB.font), generalDB.fontSize, "OUTLINE")
@@ -682,12 +726,11 @@ function Addon:InitializeFrame(frame, db, profileName)
     frame.stacksString:Hide()
   end
   
-  frame.cooldown:SetDrawSwipe(not db.hideSwirl)
-  frame.chargeCooldown:SetDrawEdge(not db.hideSwirl)
-  
+  -- Name string when unlocked
   frame.nameString:SetFont(LSM:Fetch("font", generalDB.font), generalDB.fontSize, "OUTLINE")
   frame.nameString:Hide()
   
+  -- Handle lock status and icon types
   if Addon.unlocked then
     frame:Unlock()
     frame.visible = true
@@ -704,7 +747,7 @@ function Addon:InitializeFrame(frame, db, profileName)
       local c = generalDB.borderPandemicColor
       frame.pandemicBorder:SetBackdropBorderColor(c.r, c.b, c.g, c.a)
       
-      local unitID = db.unitID
+      local unitID = frame.unitID
       frame:RegisterUnitEvent("UNIT_AURA", unitID)
       
       if string_match(unitID, "^target") then
@@ -750,7 +793,7 @@ function Addon:InitializeFrame(frame, db, profileName)
         frame.eventHandler = cooldownEventHandler
         
       else
-        frame.eventHandler = function() end  -- Dummy function for easier code
+        frame.eventHandler = dummyFunc  -- For easier code
         frame:Hide()
         
       end
@@ -768,11 +811,11 @@ function Addon:InitializeFrame(frame, db, profileName)
         end
         frame.eventHandler = cooldownEventHandler
       else
-        frame.eventHandler = function() end  -- Dummy function for easier code
+        frame.eventHandler = dummyFunc  -- For easier code
       end
       
     else
-      frame.eventHandler = function() end  -- Dummy function for easier code
+      frame.eventHandler = dummyFunc  -- For easier code
       
     end
     
@@ -792,30 +835,29 @@ function Addon:InitializeFrame(frame, db, profileName)
       end)
       onUpdateFunc(frame)
     end
-    
-  end
-  
-  frame.dynamicParent = self:GetUltimateDynamicGroupParentDB(db, profileName)
-  if frame.dynamicParent then
-    registerIconToGroup(frame, profileName, frame.dynamicParent)  -- Register at the end to avoid OnShow callbacks from initializing
   end
 end
 
 function Addon:BuildFrames(profileDB)
   local db = profileDB.auras
-  for k, v in pairs(db) do
-    if v.multitarget then
-      for k2 = 1, v.multitargetCount do
-        local v2 = v[tostring(k2)]
-        if v2 and not v2.disable then
-          setmetatable(v2, {__index = v})  -- Might be hacky and corrupt the database
-          self:InitializeFrame(getAuraFrame(), v2, profileDB.profile)
+  for _, iconDB in pairs(db) do
+    if not iconDB.disable then
+      
+      local profileName = profileDB.profile
+      local multiunitParentName = self:GetMultiunitGroupParentName(iconDB, profileName)
+      local multiunitGroup = lookupGroup(profileName, multiunitParentName)
+      local dynamicParent = self:GetUltimateDynamicGroupParentName(iconDB, profileName)
+      
+      for i = 1, multiunitGroup and multiunitGroup.db.multiunitCount or 1 do
+        local iconFrame = getAuraFrame()
+        iconFrame.multiunitGroup = multiunitGroup
+        iconFrame.multiunitIndex = i
+        self:InitializeFrame(iconFrame, iconDB, profileName)
+        if dynamicParent then
+          registerIconToGroup(iconFrame, profileName, dynamicParent)  -- Register at the end to avoid OnShow callbacks from initializing
         end
       end
-    else
-      if not v.disable then
-        self:InitializeFrame(getAuraFrame(), v, profileDB.profile)
-      end
+      
     end
   end
   
@@ -841,7 +883,7 @@ function Addon:Build()
   self:BuildFrames(self.db.class)
   self:BuildFrames(self.db.global)
   
-  for k, v in pairs(groupFrames) do
+  for _, v in pairs(groupFrames) do
     v:PositionIcons()
   end
   

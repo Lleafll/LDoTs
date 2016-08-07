@@ -124,7 +124,9 @@ local function addGroupToDB(profileName, profileDB, groupDB, parent)
       groupType = "Group",
       direction = "Right",
       posX = GetScreenWidth() / 2,
-      posY = GetScreenHeight() / 2
+      posY = GetScreenHeight() / 2,
+      unitID = "",
+      distance = 33
     }
   end
   
@@ -159,8 +161,6 @@ local function addIconToDB(profileName, profileDB, auraDB, parent)
     profileDB[auraName] = {
       spell = "",
       unitID = "target",
-      --multitarget = false,
-      multitargetCount = 1,
       auraType = "Debuff",
       ownOnly = true,
       --showStacks = false,
@@ -179,7 +179,7 @@ local function addIconToDB(profileName, profileDB, auraDB, parent)
       posX = GetScreenWidth() / 2,
       posY = GetScreenHeight() / 2,
       visibility = "show",
-      showMissing == false
+      showMissing = false
     }
   end
   
@@ -467,7 +467,8 @@ local function getGroupParent(profileName, groupDB)
   return groupParent
 end
 
-function Addon:GetUltimateDynamicGroupParentDB(iconDB, profileName)
+-- Get dynamic ancestor group closest to root
+function Addon:GetUltimateDynamicGroupParentName(iconDB, profileName)
   local profileGroups = self.db[profileName].groups
   local dynamicGroupParentName
   local groupParentName = iconDB.parent
@@ -478,6 +479,18 @@ function Addon:GetUltimateDynamicGroupParentDB(iconDB, profileName)
     groupParentName = profileGroups[groupParentName].parent
   end
   return dynamicGroupParentName
+end
+
+-- Get nearest multiunit group ancestor
+function Addon:GetMultiunitGroupParentName(iconDB, profileName)
+  local profileGroups = self.db[profileName].groups
+  local groupParentName = iconDB.parent
+  while groupParentName ~= "Root" do
+    if profileGroups[groupParentName].groupType == "Multiunit" then
+      return groupParentName
+    end
+    groupParentName = profileGroups[groupParentName].parent
+  end
 end
 
 local function selectFromTree(parentDB, profileDB, db)
@@ -598,6 +611,21 @@ local function addGroups(profileOptions, profileDB)
             ["Multiunit"] = "Multiunit Group",
           }
         },
+        unitID = {
+          order = 3.1,
+          name = "Multiunit ID",
+          type = "input",
+          hidden = groupDB.groupType ~= "Multiunit"
+        },
+        multiunitCount = {
+          order = 3.2,
+          name = "Multiunit Count",
+          type = "range",
+          min = 1,
+          softMax = 40,
+          step = 1,
+          hidden = groupDB.groupType ~= "Multiunit"
+        },
         direction = {
           order = 4,
           name = "Direction",
@@ -609,7 +637,7 @@ local function addGroups(profileOptions, profileDB)
             ["Up"] = "Up",
             ["Down"] = "Down"
           },
-          hidden = groupDB.groupType ~= "Dynamic",
+          hidden = groupDB.groupType ~= "Dynamic" and groupDB.groupType ~= "Multiunit",
         },
         posX = {
           order = 5,
@@ -629,8 +657,22 @@ local function addGroups(profileOptions, profileDB)
           step = 1,
           hidden = groupDB.groupType ~= "Dynamic"
         },
-        exportGroupHeader = {
+        distance = {
+          order = 6.1,
+          name = "Distance",
+          type = "range",
+          min = 0,
+          softMax = 100,
+          step = 1,
+          hidden = groupDB.groupType ~= "Multiunit"
+        },
+        teemplateHeader = {
           order = 7,
+          name = "Templates",
+          type = "header"
+        },
+        exportGroupHeader = {
+          order = 7.9,
           name = "Export Group",
           type = "header"
         },
@@ -779,21 +821,6 @@ local function addAuras(profileOptions, profileDB)
           hidden = auraDB.iconType ~= "Aura"
           -- TODO: Add validation
         },
-        --[[multitarget = {
-          order = 2.1,
-          name = "Multi Unit",
-          type = "toggle",
-          hidden = auraDB.iconType ~= "Aura"
-        },
-        multitargetCount = {
-          order = 2.2,
-          name = "Multi Unit Count",
-          type = "range",
-          min = 1,
-          softMax = 20,
-          step = 1,
-          hidden = auraDB.iconType ~= "Aura" or not auraDB.multitarget
-        },]]--
         auraType = {
           order = 2.4,
           name = "Aura Type",
@@ -922,7 +949,7 @@ local function addAuras(profileOptions, profileDB)
           softMax = 100,
           step = 1
         },
-        --[[headerPositioning = {
+        headerPositioning = {
           order = 6.9,
           name = "Positioning",
           type = "header",
@@ -934,7 +961,6 @@ local function addAuras(profileOptions, profileDB)
           min = 0,
           max = math_ceil(GetScreenWidth()),
           step = 1,
-          hidden = auraDB.multitarget
         },
         posY = {
           order = 12,
@@ -943,77 +969,7 @@ local function addAuras(profileOptions, profileDB)
           min = 0,
           max = math_ceil(GetScreenHeight()),
           step = 1,
-          hidden = auraDB.multitarget
         },
-        arrangeInGrid = {
-          order = 20,
-          name = "Arrange Icons",
-          type = "execute",
-          hidden = not auraDB.multitarget,
-          func = function()
-            local i = 1
-            local xOffset = 0
-            local yOffset = 0
-            if auraDB.arrangePriority == "Horizontal-Vertical" then
-              local columns = math_ceil(auraDB.multitargetCount / auraDB.arrangeRows)
-              for m = 1, auraDB.arrangeRows do
-                for n = 1, columns do
-                  local numberString = tostring(i)
-                  auraDB[numberString].posX = auraDB["1"].posX + xOffset
-                  auraDB[numberString].posY = auraDB["1"].posY + yOffset
-                  xOffset = xOffset + auraDB.arrangeXDistance
-                  i = i + 1
-                  if i > auraDB.multitargetCount then
-                    Addon:Build()
-                    return
-                  end
-                end
-                xOffset = 0
-                yOffset = yOffset + auraDB.arrangeYDistance
-              end
-            else
-              
-            end
-          end,          
-        },
-        arrangePriority = {
-          order = 21,
-          name = "Arrange Priority",
-          type = "select",
-          style = "dropdown",
-          values = {
-            ["Horizontal-Vertical"] = "Horizontal-Vertical",
-            ["Vertical-Horizontal"] = "Vertical-Horizontal",
-          },
-          hidden = not auraDB.multitarget,
-        },
-        arrangeRows = {
-          order = 22,
-          name = "No. of Rows for Arranging",
-          type = "range",
-          min = 1,
-          max = auraDB.multitargetCount,
-          step = 1,
-          hidden = not auraDB.multitarget,
-        },
-        arrangeXDistance = {
-          order = 23,
-          name = "X Distance for Arranging",
-          type = "range",
-          softMin = -100,
-          softMax = 100,
-          step = 1,
-          hidden = not auraDB.multitarget,
-        },
-        arrangeYDistance = {
-          order = 24,
-          name = "Y Distance for Arranging",
-          type = "range",
-          softMin = -100,
-          softMax = 100,
-          step = 1,
-          hidden = not auraDB.multitarget,
-        },]]--
         customFunctionsheader = {
           order = 25,
           name = "Custom Functions",
@@ -1074,56 +1030,6 @@ local function addAuras(profileOptions, profileDB)
         },
       }
     }
-    
-    -- Add multi unit auras if applicable
-    --[=[if auraDB.multitarget then      
-      for i = 1, auraDB.multitargetCount do
-        local childName = tostring(i)
-        
-        auraDB[childName] = auraDB[childName] or {}
-        local childDB = auraDB[childName]
-        childDB.name = auraDB.name.."\n"..auraDB.unitID..childName
-        childDB.unitID = auraDB.unitID..childName
-        setmetatable(childDB, {__index = auraDB})  -- Might be hacky and corrupt the database
-        
-        groupParent[auraName].args[childName] = {
-          order = i,
-          name = childName,
-          type = "group",
-          get = function(info)
-            return childDB[info[#info]]
-          end,
-          set = function(info, value)
-            childDB[info[#info]] = value
-            Addon:Build()
-          end,
-          args = {
-            headerPositioning = {
-              order = 6.9,
-              name = "Positioning",
-              type = "header",
-            },
-            posX = {
-              order = 11,
-              name = "X Position",
-              type = "range",
-              min = 0,
-              max = math_ceil(GetScreenWidth()),
-              step = 1,
-            },
-            posY = {
-              order = 12,
-              name = "Y Position",
-              type = "range",
-              min = 0,
-              max = math_ceil(GetScreenHeight()),
-              step = 1,
-            }
-          }
-        }
-      end
-    end]=]--
-    
     order = order + 1
   end
 end
