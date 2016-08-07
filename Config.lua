@@ -603,13 +603,13 @@ local function addGroups(profileOptions, profileDB)
           name = "Direction",
           type = "select",
           style = "dropdown",
-          hidden = groupDB.groupType ~= "Dynamic",
           values = {
             ["Left"] = "Left",
             ["Right"] = "Right",
             ["Up"] = "Up",
             ["Down"] = "Down"
-          }
+          },
+          hidden = groupDB.groupType ~= "Dynamic",
         },
         posX = {
           order = 5,
@@ -779,7 +779,7 @@ local function addAuras(profileOptions, profileDB)
           hidden = auraDB.iconType ~= "Aura"
           -- TODO: Add validation
         },
-        multitarget = {
+        --[[multitarget = {
           order = 2.1,
           name = "Multi Unit",
           type = "toggle",
@@ -793,7 +793,7 @@ local function addAuras(profileOptions, profileDB)
           softMax = 20,
           step = 1,
           hidden = auraDB.iconType ~= "Aura" or not auraDB.multitarget
-        },
+        },]]--
         auraType = {
           order = 2.4,
           name = "Aura Type",
@@ -922,7 +922,7 @@ local function addAuras(profileOptions, profileDB)
           softMax = 100,
           step = 1
         },
-        headerPositioning = {
+        --[[headerPositioning = {
           order = 6.9,
           name = "Positioning",
           type = "header",
@@ -1013,7 +1013,7 @@ local function addAuras(profileOptions, profileDB)
           softMax = 100,
           step = 1,
           hidden = not auraDB.multitarget,
-        },
+        },]]--
         customFunctionsheader = {
           order = 25,
           name = "Custom Functions",
@@ -1076,7 +1076,7 @@ local function addAuras(profileOptions, profileDB)
     }
     
     -- Add multi unit auras if applicable
-    if auraDB.multitarget then      
+    --[=[if auraDB.multitarget then      
       for i = 1, auraDB.multitargetCount do
         local childName = tostring(i)
         
@@ -1122,7 +1122,7 @@ local function addAuras(profileOptions, profileDB)
           }
         }
       end
-    end
+    end]=]--
     
     order = order + 1
   end
