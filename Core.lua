@@ -368,6 +368,7 @@ local function storeAuraFrame(frame)
   frame.dynamicParent = nil
   frame.multiunitGroup = nil
   frame.multiunitIndex = nil
+  frame:SetParent(UIParent)
   frame:Hide()
   
   auraFrameCache[#auraFrameCache+1] = frame
@@ -614,6 +615,61 @@ end
 
 
 
+-------------------------------------
+-- Global Parent Attachment Center --
+-------------------------------------
+local attachParents = {}
+
+function Addon:WipeattachParents()
+  wipe(attachParents)
+end
+
+function Addon:BuildFrameWithAttachParent(index, attachParent, iconDB, profileName, multiunitGroup)
+  local iconFrame = getAuraFrame()
+  iconFrame.multiunitIndex = index
+  iconFrame.multiunitGroup = multiunitGroup
+  iconFrame:SetParent(attachParent)
+  self:InitializeFrame(iconFrame, iconDB, profileName)
+end
+
+function Addon.CheckCreateFrameForParents(_, frameName, createdsParentFrame)
+  if frameName then
+    if createdsParentFrame and createdsParentFrame:GetName() then
+      frameName = frameName:gsub("$parent", createdsParentFrame:GetName())
+    end
+    for iconDB, v in pairs(attachParents) do
+      local index = frameName:match(v.attachParentPattern)
+      if index then
+        Addon:BuildFrameWithAttachParent(index, _G[frameName], v.iconDB, v.profileName, v.multiunitGroup)
+      end
+    end
+  end
+end
+
+function Addon:AttachToFrame(iconDB, profileName, multiunitGroup)
+  local attachParentStub = multiunitGroup.db.attachFrame
+  local attachParentPattern = attachParentStub .. "(%d+)$"
+  
+  attachParents[iconDB] = {
+    attachParentPattern = attachParentPattern,
+    iconDB = iconDB,
+    profileName = profileName,
+    multiunitGroup = multiunitGroup
+  }
+  
+  attachParentPattern = attachParentPattern:gsub("%$", "")
+  local index = 1
+  local attachParent = _G[attachParentPattern:gsub("%(%%d%+%)", index)]  
+  while attachParent and type(attachParent) == "table" do
+    self:BuildFrameWithAttachParent(index, attachParent, iconDB, profileName, multiunitGroup)
+    
+    index = index + 1
+    attachParent = _G[attachParentPattern:gsub("%(%%d%+%)", index)]
+  end
+end
+
+
+
 ------------
 -- Groups --
 ------------
@@ -647,16 +703,6 @@ function Addon:InitializeMultiunitGroup(groupDB, profileName)
   frame:Show()
 end
 
-function Addon:BuildGroups(profileDB)
-  local db = profileDB.groups
-  for _, groupDB in pairs(db) do
-    if groupDB.groupType == "Dynamic" then
-      self:InitializeDynamicGroup(groupDB, profileDB.profile)
-    elseif groupDB.groupType == "Multiunit" then
-      self:InitializeMultiunitGroup(groupDB, profileDB.profile)
-    end
-  end
-end
 
 
 -----------
@@ -669,23 +715,8 @@ function Addon:InitializeFrame(frame, db, profileName)
   
   -- Multiunit
   if frame.multiunitGroup then
-    local multiUnitDB = frame.multiunitGroup.db
-    local multiunitIndex = frame.multiunitIndex
-    frame.unitID = (multiUnitDB.unitID or "")..tostring(multiunitIndex)
-    local posX = db.posX
-    local posY = db.posY
-    local distance = multiUnitDB.distance or 33
-    local direction = multiUnitDB.direction
-    if direction == "Left" then
-      posX = posX - distance * (multiunitIndex - 1)
-    elseif direction == "Right" then
-      posX = posX + distance * (multiunitIndex - 1)
-    elseif direction == "Up" then
-      posY = posY + distance * (multiunitIndex - 1)
-    else  -- Down
-      posY = posY - distance * (multiunitIndex - 1)
-    end
-    frame:SetPoint("BOTTOMLEFT", posX, posY)
+    frame.unitID = (frame.multiunitGroup.db.unitID or "")..tostring(frame.multiunitIndex)  -- TODO: Make sure unitID is always set
+    frame:SetPoint("BOTTOMLEFT", db.posX, db.posY)
   else
     frame.unitID = db.unitID
     frame:SetPoint("BOTTOMLEFT", db.posX, db.posY)
@@ -836,6 +867,28 @@ function Addon:InitializeFrame(frame, db, profileName)
       onUpdateFunc(frame)
     end
   end
+  
+  -- Dynamic parent
+  local dynamicParent = self:GetUltimateDynamicGroupParentName(db, profileName)
+  if dynamicParent then
+    registerIconToGroup(frame, profileName, dynamicParent)  -- Register at the end to avoid OnShow callbacks from initializing
+  end
+end
+
+
+
+--------------------
+-- Initialization --
+--------------------
+function Addon:BuildGroups(profileDB)
+  local db = profileDB.groups
+  for _, groupDB in pairs(db) do
+    if groupDB.groupType == "Dynamic" then
+      self:InitializeDynamicGroup(groupDB, profileDB.profile)
+    elseif groupDB.groupType == "Multiunit" then
+      self:InitializeMultiunitGroup(groupDB, profileDB.profile)
+    end
+  end
 end
 
 function Addon:BuildFrames(profileDB)
@@ -846,16 +899,12 @@ function Addon:BuildFrames(profileDB)
       local profileName = profileDB.profile
       local multiunitParentName = self:GetMultiunitGroupParentName(iconDB, profileName)
       local multiunitGroup = lookupGroup(profileName, multiunitParentName)
-      local dynamicParent = self:GetUltimateDynamicGroupParentName(iconDB, profileName)
       
-      for i = 1, multiunitGroup and multiunitGroup.db.multiunitCount or 1 do
-        local iconFrame = getAuraFrame()
-        iconFrame.multiunitGroup = multiunitGroup
-        iconFrame.multiunitIndex = i
+      local iconFrame = getAuraFrame()
+      if multiunitGroup and multiunitGroup.db.attachFrame then  -- TODO: Make sure attachFrame is always set
+        self:AttachToFrame(iconDB, profileName, multiunitGroup)
+      else
         self:InitializeFrame(iconFrame, iconDB, profileName)
-        if dynamicParent then
-          registerIconToGroup(iconFrame, profileName, dynamicParent)  -- Register at the end to avoid OnShow callbacks from initializing
-        end
       end
       
     end
@@ -866,14 +915,10 @@ function Addon:BuildFrames(profileDB)
   end
 end
 
-
-
---------------------
--- Initialization --
---------------------
 function Addon:Build()
   generalDB = self.db.global.options
   
+  self:WipeattachParents()
   self:WipeGroupFrames()
   self:WipeAuraFrames()
   

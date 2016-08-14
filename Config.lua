@@ -618,7 +618,13 @@ local function addGroups(profileOptions, profileDB)
           type = "input",
           hidden = groupDB.groupType ~= "Multiunit"
         },
-        multiunitCount = {
+        attachFrame = {
+          order = 3.2,
+          name = "Parent Frame",
+          type = "input",
+          hidden = groupDB.groupType ~= "Multiunit"
+        },
+        --[[multiunitCount = {
           order = 3.2,
           name = "Multiunit Count",
           type = "range",
@@ -626,7 +632,7 @@ local function addGroups(profileOptions, profileDB)
           softMax = 40,
           step = 1,
           hidden = groupDB.groupType ~= "Multiunit"
-        },
+        },]]--
         direction = {
           order = 4,
           name = "Direction",
@@ -638,14 +644,14 @@ local function addGroups(profileOptions, profileDB)
             ["Up"] = "Up",
             ["Down"] = "Down"
           },
-          hidden = groupDB.groupType ~= "Dynamic" and groupDB.groupType ~= "Multiunit",
+          hidden = groupDB.groupType ~= "Dynamic",
         },
         posX = {
           order = 5,
           name = "X Position",
           type = "range",
-          min = 0,
-          max = math_ceil(GetScreenWidth()),
+          softMin = -math_ceil(GetScreenWidth()),
+          softMax = math_ceil(GetScreenWidth()),
           step = 1,
           hidden = groupDB.groupType ~= "Dynamic"
         },
@@ -653,12 +659,12 @@ local function addGroups(profileOptions, profileDB)
           order = 6,
           name = "Y Position",
           type = "range",
-          min = 0,
-          max = math_ceil(GetScreenHeight()),
+          softMin = -math_ceil(GetScreenHeight()),
+          softMax = math_ceil(GetScreenHeight()),
           step = 1,
           hidden = groupDB.groupType ~= "Dynamic"
         },
-        distance = {
+        --[[distance = {
           order = 6.1,
           name = "Distance",
           type = "range",
@@ -666,8 +672,8 @@ local function addGroups(profileOptions, profileDB)
           softMax = 100,
           step = 1,
           hidden = groupDB.groupType ~= "Multiunit"
-        },
-        teemplateHeader = {
+        },]]--
+        templateHeader = {
           order = 7,
           name = "Templates",
           type = "header"
@@ -959,16 +965,16 @@ local function addAuras(profileOptions, profileDB)
           order = 11,
           name = "X Position",
           type = "range",
-          min = 0,
-          max = math_ceil(GetScreenWidth()),
+          softMin = -math_ceil(GetScreenWidth()),
+          softMax = math_ceil(GetScreenWidth()),
           step = 1,
         },
         posY = {
           order = 12,
           name = "Y Position",
           type = "range",
-          min = 0,
-          max = math_ceil(GetScreenHeight()),
+          softMin = -math_ceil(GetScreenHeight()),
+          softMax = math_ceil(GetScreenHeight()),
           step = 1,
         },
         customFunctionsheader = {
@@ -1325,8 +1331,11 @@ do
 end
 
 function Addon:PLAYER_ENTERING_WORLD()
+  -- Everything should be available, build icons
   self:Build()
-  
+  -- Hook CreateFrame to initialize icons w/o parent as soon as their parents are created
+  hooksecurefunc("CreateFrame", self.CheckCreateFrameForParents)
+  -- Register events which could make rebuilding icons necessary
   self:RegisterEvent("PLAYER_TALENT_UPDATE", "Build")
   self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
   
@@ -1339,7 +1348,8 @@ end
 -- Initialization --
 --------------------
 function Addon:OnInitialize()
+  -- Load addon settings
   self.db = ADB:New(addonName.."DB", defaultSettings, true)
-  
+  -- Delay building icons until later
   self:RegisterEvent("PLAYER_ENTERING_WORLD")
 end
