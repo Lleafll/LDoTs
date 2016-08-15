@@ -392,18 +392,27 @@ local function auraEventHandler(self, event, ...)
     return
   end
   
-  if event == "NAME_PLATE_UNIT_ADDED" or event == "PLAYER_TARGET_CHANGED"then
+  local unitID = self.unitID or self.namePlateFrame.UnitFrame.displayedUnit
+  if not unitID then
+    return
+  end
+  
+  if event == "UNIT_AURA" or event == "NAME_PLATE_CREATED" then
+    if ... ~= unitID then
+      return
+    end    
+  elseif event == "NAME_PLATE_UNIT_ADDED" or event == "PLAYER_TARGET_CHANGED"then
+    if event == "NAME_PLATE_UNIT_ADDED" and ... ~= unitID then
+      return
+    end
     self.duration = nil
     self.expires = nil
     self.pandemic = nil
     self.inPandemic = nil
   elseif event == "NAME_PLATE_UNIT_REMOVED" then
+    if ... == unitID then
       self:Hide()
-    return
-  end
-  
-  local unitID = self.unitID or self.namePlateFrame.UnitFrame.displayedUnit
-  if not unitID then
+    end
     return
   end
   
@@ -785,7 +794,7 @@ function Addon:InitializeFrame(frame, db, profileName)
       frame.pandemicBorder:SetBackdropBorderColor(c.r, c.b, c.g, c.a)
       
       local unitID = frame.unitID
-      frame:RegisterUnitEvent("UNIT_AURA", unitID)
+      frame:RegisterEvent("UNIT_AURA")
       
       if string_match(unitID, "^target") then
         frame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -800,11 +809,10 @@ function Addon:InitializeFrame(frame, db, profileName)
         frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
       end
       
-      local nameplateMatch = string_match(unitID, "^nameplate%d")
-      if nameplateMatch then
-        frame:RegisterUnitEvent("NAME_PLATE_CREATED", nameplateMatch)
-        frame:RegisterUnitEvent("NAME_PLATE_UNIT_ADDED", nameplateMatch)
-        frame:RegisterUnitEvent("NAME_PLATE_UNIT_REMOVED", nameplateMatch)
+      if unitID:find("^nameplate%d+") then
+        frame:RegisterEvent("NAME_PLATE_CREATED")
+        frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+        frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
       end
       
       if db.pandemic and db.pandemicExtra > 0 and db.pandemicHasted then
