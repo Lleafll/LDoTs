@@ -13,6 +13,7 @@ local LSM = LibStub('LibSharedMedia-3.0')
 --------------
 -- Upvalues --
 --------------
+local _G = _G
 local assert = assert
 local GetItemInfo = GetItemInfo
 local GetSpellCharges = GetSpellCharges
@@ -401,12 +402,17 @@ local function auraEventHandler(self, event, ...)
     return
   end
   
+  local unitID = self.unitID or self.namePlateFrame.UnitFrame.displayedUnit
+  if not unitID then
+    return
+  end
+  
   local db = self.db
   local _, icon, count, duration, expires
   if db.auraType == "Buff" then
-    _, _, icon, count, _, duration, expires = UnitBuff(self.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, icon, count, _, duration, expires = UnitBuff(unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   else
-    _, _, icon, count, _, duration, expires = UnitDebuff(self.unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, _, icon, count, _, duration, expires = UnitDebuff(unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
   end
   
   if db.showMissing == nil then
@@ -865,6 +871,18 @@ function Addon:InitializeFrame(frame, db, profileName)
         end
       end)
       onUpdateFunc(frame)
+    end
+  end
+  
+  -- Unit ID handling for nameplate attachment
+  if frame:GetParent() ~= "UIParent" and frame.unitID:find("^nameplate%d+$") then
+    local namePlateFrame = _G[frame.unitID:gsub("nameplate", "NamePlate")]
+    if namePlateFrame then
+      frame.namePlateFrame = namePlateFrame
+      frame.unitID = nil
+    else
+      -- Debug
+      --print("LDoTs: NamePlate for "..frame.unitID.." could not be found.")
     end
   end
   
