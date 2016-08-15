@@ -369,6 +369,7 @@ local function storeAuraFrame(frame)
   frame.dynamicParent = nil
   frame.multiunitGroup = nil
   frame.multiunitIndex = nil
+  frame.namePlateFrame = nil
   frame:SetParent(UIParent)
   frame:Hide()
   
