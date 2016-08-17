@@ -31,6 +31,7 @@ local string_match = string.match
 local table_sort = table.sort
 local tonumber = tonumber
 local tostring = tostring
+local UIParent = UIParent
 local UnitAura = UnitAura
 local wipe = wipe
 
@@ -884,14 +885,24 @@ function Addon:InitializeFrame(frame, db, profileName)
   end
   
   -- Unit ID handling for nameplate attachment
-  if frame:GetParent() ~= "UIParent" and frame.unitID:find("^nameplate%d+$") then
-    local namePlateFrame = _G[frame.unitID:gsub("nameplate", "NamePlate")]
+  if frame.unitID:find("^nameplate%d+$") then
+    -- Check if icon is somehow anchored to a NamePlate frame
+    local namePlateFrame
+    local parentFrame = frame:GetParent()
+    while parentFrame and parentFrame ~= UIParent do
+      if parentFrame:GetName():find("^Nameplate%d+$") then
+        namePlateFrame = parentFrame
+      end
+      parentFrame = parentFrame:GetParent()
+    end
+    
     if namePlateFrame then
       frame.namePlateFrame = namePlateFrame
       frame.unitID = nil
     else
       -- Debug
-      --print("LDoTs: NamePlate for "..frame.unitID.." could not be found.")
+      --print(frame:GetParent():GetName())
+      --print("LDoTs: NamePlate for "..frame.unitID.." could not be found. "..db.name)
     end
   end
   
