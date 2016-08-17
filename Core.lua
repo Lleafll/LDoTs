@@ -551,7 +551,7 @@ local function cooldownEventHandler(self, event, ...)
     start, duration, enable = GetItemCooldown(self.itemID)
   end
   
-  if not db.showOffCooldown and (start == 0 or duration <= 1.5) then
+  if not start or not db.showOffCooldown and (start == 0 or duration <= 1.5) then  -- not start: When spell/item can't be found
     self:Hide()
     return
     
