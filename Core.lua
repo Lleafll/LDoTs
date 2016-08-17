@@ -885,24 +885,12 @@ function Addon:InitializeFrame(frame, db, profileName)
   end
   
   -- Unit ID handling for nameplate attachment
-  if frame.unitID:find("^nameplate%d+$") then
+  if frame.unitID:find("^nameplate%d+$") then  -- TODO: Consolidate check (maybe don't use pattern method as first check)
     -- Check if icon is somehow anchored to a NamePlate frame
-    local namePlateFrame
-    local parentFrame = frame:GetParent()
-    while parentFrame and parentFrame ~= UIParent do
-      if parentFrame:GetName():find("^Nameplate%d+$") then
-        namePlateFrame = parentFrame
-      end
-      parentFrame = parentFrame:GetParent()
-    end
-    
-    if namePlateFrame then
-      frame.namePlateFrame = namePlateFrame
+    local attachFrame = frame.multiunitGroup.db.attachFrame
+    if attachFrame == "NamePlate" or attachFrame == "KuiNamePlate" then
+      frame.namePlateFrame = _G["NamePlate"..frame.multiunitIndex]
       frame.unitID = nil
-    else
-      -- Debug
-      --print(frame:GetParent():GetName())
-      --print("LDoTs: NamePlate for "..frame.unitID.." could not be found. "..db.name)
     end
   end
   
