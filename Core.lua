@@ -15,6 +15,7 @@ local LSM = LibStub('LibSharedMedia-3.0')
 --------------
 local _G = _G
 local assert = assert
+local AuraUtil = AuraUtil
 local GetItemInfo = GetItemInfo
 local GetSpellCharges = GetSpellCharges
 local GetSpellCooldown = GetSpellCooldown
@@ -421,9 +422,9 @@ local function auraEventHandler(self, event, ...)
   local db = self.db
   local _, icon, count, duration, expires
   if db.auraType == "Buff" then
-    _, _, icon, count, _, duration, expires = UnitBuff(unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, icon, count, _, duration, expires = AuraUtil.FindAuraByName(db.spell, unitID, db.ownOnly and "PLAYER" or nil)
   else
-    _, _, icon, count, _, duration, expires = UnitDebuff(unitID, db.spell, nil, db.ownOnly and "PLAYER" or nil)
+    _, icon, count, _, duration, expires = AuraUtil.FindAuraByName(db.spell, unitID, db.ownOnly and "HARMFUL|PLAYER" or nil)
   end
   
   if db.showMissing == nil then
