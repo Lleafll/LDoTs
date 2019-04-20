@@ -17,6 +17,7 @@ local _G = _G
 local assert = assert
 local AuraUtil = AuraUtil
 local GetItemInfo = GetItemInfo
+local GetSpellCount = GetSpellCount
 local GetSpellCharges = GetSpellCharges
 local GetSpellCooldown = GetSpellCooldown
 local GetSpellInfo = GetSpellInfo
@@ -548,7 +549,8 @@ local function cooldownEventHandler(self, event, ...)
   local stacks, maxStacks, stacksStart, stacksDuration
   if db.iconType == "Spell" then
     start, duration, enable = GetSpellCooldown(db.spell)
-    stacks, maxStacks, stacksStart, stacksDuration = GetSpellCharges(db.spell)
+    stacks = GetSpellCount(db.spell)
+    _, maxStacks, stacksStart, stacksDuration = GetSpellCharges(db.spell)
   elseif db.iconType == "Item" then
     start, duration, enable = GetItemCooldown(self.itemID)
   end
@@ -560,7 +562,7 @@ local function cooldownEventHandler(self, event, ...)
   else
     self:Show()
     
-    if stacks and stacks > 0 and stacks < maxStacks and (stacksStart ~= self.stacksStart or stacksDuration ~= self.stacksDuration) then
+    if stacks and stacks > 0 and maxStacks and stacks < maxStacks and stacksStart and stacksDuration and (stacksStart ~= self.stacksStart or stacksDuration ~= self.stacksDuration) then
       self.chargeCooldown:SetCooldown(stacksStart, stacksDuration)
       self.stacksStart = stacksStart
       self.stacksDuration = stacksDuration
@@ -830,7 +832,7 @@ function Addon:InitializeFrame(frame, db, profileName)
         frame:RegisterEvent("SPELL_UPDATE_USABLE")
         if db.showStacks then
           frame:RegisterEvent("SPELL_UPDATE_CHARGES")
-          frame.stacksString:SetText(GetSpellCharges(db.spell))
+          frame.stacksString:SetText(GetSpellCount(db.spell))
         end
         frame:SetScript("OnEvent", cooldownEventHandler)
         if db.showOffCooldown then
